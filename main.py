@@ -89,6 +89,9 @@ def create_reverse_proxies():
         ipv6 = entry['ipv6_address']
         config_file_path = entry['config_file_path']
 
+        if ipv6 is None:
+            ipv6 = "2001:db8::1"
+
         nginx_config = get_domain_nginx_config(domain_name=domain_name,
                                                protocol=protocol,
                                                ipv6_address=ipv6)
