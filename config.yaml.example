@@ -1,0 +1,4 @@
+access_code: "your_secret_code"
+nginx_config_files:
+  - "/etc/nginx/conf.d/test.bysandeep.site.conf"
+  - "/etc/nginx/conf.d/minio.bysandeep.site.conf"
