@@ -1,4 +1,12 @@
-access_code: "your_secret_code"
-nginx_config_files:
-  - "/etc/nginx/conf.d/test.bysandeep.site.conf"
-  - "/etc/nginx/conf.d/minio.bysandeep.site.conf"
+ddns_entries:
+  - domain_name: test.bysandeep.site
+    config_file_path: /etc/nginx/conf.d/test.bysandeep.site.conf
+    protocol: http
+    ipv6_address: null
+    access_code: your_secret_code
+
+  - domain_name: minio.bysandeep.site
+    config_file_path: /etc/nginx/conf.d/minio.bysandeep.site.conf
+    protocol: http
+    ipv6_address: null
+    access_code: your_secret_code
