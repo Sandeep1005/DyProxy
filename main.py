@@ -105,9 +105,14 @@ def create_reverse_proxies():
     print("Nginx restarted successfully")
 
 
-if __name__ == "__main__":
+with app.app_context():
     # Start the necessary nginx services first
     create_reverse_proxies()
 
+
+if __name__ == "__main__":
+    # Start the necessary nginx services first
+    create_reverse_proxies()
+    
     # Start the IPv6 updation service 
     app.run()
