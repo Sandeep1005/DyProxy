@@ -6,7 +6,7 @@ import yaml
 
 
 # Load configuration from YAML file
-CONFIG_FILE = "config.yaml"
+CONFIG_FILE = "./config.yaml"
 with open(CONFIG_FILE, 'r') as file:
     config = yaml.safe_load(file)
 
@@ -68,7 +68,12 @@ def update_ipv6():
         subprocess.run(["sudo", "systemctl", "restart", "nginx"], check=True)
         print("Nginx restarted successfully")
 
+        # Dumping the updated configuration
+        with open(CONFIG_FILE, "w") as file:
+            yaml.safe_dump(config, file, default_flow_style=False, sort_keys=False)
+
         return jsonify({"message": "IPv6 address updated successfully"})
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     
