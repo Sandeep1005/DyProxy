@@ -19,7 +19,7 @@ server {
     server_name $#@domain_name;
 
     location / {
-        proxy_pass $#@protocol://[$#@ipv6_address];  # Replace with actual IPv6 address
+        proxy_pass $#@protocol://[$#@ipv6_address];
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -40,9 +40,9 @@ def get_domain_config(domain):
 
 @app.route("/update_ipv6", methods=["POST"])
 def update_ipv6():
-    domain = request.form.get("domain_name")
-    access_code = request.form.get("access_code")
-    new_ipv6 = request.form.get("ipv6")
+    domain = request.json.get("domain_name")
+    access_code = request.json.get("access_code")
+    new_ipv6 = request.json.get("ipv6")
 
     domain_config = get_domain_config(domain)
 
@@ -113,6 +113,6 @@ with app.app_context():
 if __name__ == "__main__":
     # Start the necessary nginx services first
     create_reverse_proxies()
-    
+
     # Start the IPv6 updation service 
     app.run()
