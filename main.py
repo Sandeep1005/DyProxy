@@ -77,10 +77,10 @@ def update_ipv6():
         with open(CONFIG_FILE, "w") as file:
             yaml.safe_dump(config, file, default_flow_style=False, sort_keys=False)
 
-        return jsonify({"message": "IPv6 address updated successfully"})
-
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+    return jsonify({"message": "IPv6 address updated successfully"})
     
 
 def get_domain_nginx_config(domain_name, protocol, ipv6_address):
