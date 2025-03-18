@@ -75,7 +75,7 @@ def update_ipv6():
         subprocess.run(["sudo", "tee", domain_config['config_file_path']], stdin=echo_process.stdout, check=True)
         print(f"Created {domain_config['config_file_path']} with IPv6: {new_ipv6}")
 
-        # Restart Nginx with sudo
+        # Reload Nginx with sudo
         subprocess.run(["sudo", "systemctl", "reload", "nginx"], check=True)
         print("Nginx reloaded successfully")
 
@@ -111,9 +111,41 @@ def create_reverse_proxies():
         subprocess.run(["sudo", "tee", config_file_path], stdin=echo_process.stdout, check=True)
         print(f"Created {config_file_path} with IPv6: {ipv6}")
 
-    # Restart Nginx with sudo
-    subprocess.run(["sudo", "systemctl", "restart", "nginx"], check=True)
-    print("Nginx restarted successfully")
+    # Reload Nginx with sudo
+    subprocess.run(["sudo", "systemctl", "reload", "nginx"], check=True)
+    print("Nginx reloaded successfully")
+
+
+def create_single_reverse_proxy(domain_name, config_file_path, protocol, ipv6_address):
+    try:
+        nginx_config = get_domain_nginx_config(domain_name=domain_name,
+                                                protocol=protocol,
+                                                ipv6_address=ipv6_address)
+        
+        echo_process = subprocess.Popen(["echo", nginx_config], stdout=subprocess.PIPE)
+        subprocess.run(["sudo", "tee", config_file_path], stdin=echo_process.stdout, check=True)
+        print(f"Created {config_file_path} with IPv6: {ipv6_address}")
+
+        # Reload Nginx with sudo
+        subprocess.run(["sudo", "systemctl", "reload", "nginx"], check=True)
+        print("Nginx reloaded successfully")
+
+        return True
+    except:
+        return False
+
+
+def delete_single_reverse_proxy(config_file_path):
+    try:
+        subprocess.run(["sudo", "rm", config_file_path], check=True)
+
+        # Reload Nginx with sudo
+        subprocess.run(["sudo", "systemctl", "reload", "nginx"], check=True)
+        print("Nginx reloaded successfully")
+
+        return True
+    except:
+        return False
 
 
 app.secret_key = os.getenv("SECRET_KEY", secrets.token_hex(32))  # Secure secret key
@@ -125,15 +157,18 @@ limiter = Limiter(get_remote_address, app=app, default_limits=["5 per minute"])
 CONFIG_FILE = "config.yaml"
 AUTH_FILE = "auth.yaml"
 
+
 def load_config():
     if not os.path.exists(CONFIG_FILE):
         return {"ddns_entries": []}
     with open(CONFIG_FILE, "r") as file:
         return yaml.safe_load(file) or {"ddns_entries": []}
 
+
 def save_config(data):
     with open(CONFIG_FILE, "w") as file:
         yaml.safe_dump(data, file)
+
 
 def load_auth():
     if not os.path.exists(AUTH_FILE):
@@ -141,8 +176,10 @@ def load_auth():
     with open(AUTH_FILE, "r") as file:
         return yaml.safe_load(file)
 
+
 def check_password(stored_password, provided_password):
     return bcrypt.checkpw(provided_password.encode("utf-8"), stored_password.encode("utf-8"))
+
 
 @app.route("/", methods=["GET", "POST"])
 @limiter.limit("5 per minute")
@@ -161,6 +198,7 @@ def login():
     
     return render_template("login.html")
 
+
 @app.route("/dashboard")
 def dashboard():
     if "username" not in session:
@@ -168,10 +206,12 @@ def dashboard():
     config = load_config()
     return render_template("index.html", entries=config["ddns_entries"], username=session["username"])
 
+
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect(url_for("login"))
+
 
 @app.post("/update_entity")
 def update_entity():
@@ -196,8 +236,15 @@ def update_entity():
         "ipv6_address": ipv6_address,
         "access_code": access_code
     }
-    save_config(config)
-    return jsonify({"message": "Entity updated successfully"})
+
+    # Updating the nginx config for the site
+    is_success = create_single_reverse_proxy(domain_name, config_file_path, protocol, ipv6_address)
+    if not is_success:
+        return jsonify({"message": "Entity updation failed"})
+    else:
+        save_config(config)    
+        return jsonify({"message": "Entity updated successfully"})
+
 
 @app.post("/add_entity")
 def add_entity():
@@ -218,8 +265,14 @@ def add_entity():
         "ipv6_address": ipv6_address,
         "access_code": access_code
     })
-    save_config(config)
-    return jsonify({"message": "Entity added successfully"})
+
+    # Updating the nginx config for the site
+    is_success = create_single_reverse_proxy(domain_name, config_file_path, protocol, ipv6_address)
+    if not is_success:
+        return jsonify({"message": "Entity addition failed"})
+    else:
+        save_config(config)    
+        return jsonify({"message": "Entity added successfully"})
 
 
 @app.post("/delete_entity")
@@ -233,10 +286,10 @@ def delete_entity():
     if index >= len(config["ddns_entries"]):
         return jsonify({"error": "Entity not found"}), 404
     
-    del config["ddns_entries"][index]
-    save_config(config)
-    return jsonify({"message": "Entity deleted successfully"})
-
-
-# if __name__ == "__main__":
-#     app.run(debug=True)
+    is_success = delete_single_reverse_proxy(config["ddns_entries"][index]["config_file_path"])
+    if not is_success:
+        return jsonify({"message": "Entity deletion failed"})
+    else:
+        del config["ddns_entries"][index]
+        save_config(config)
+        return jsonify({"message": "Entity deleted successfully"})
