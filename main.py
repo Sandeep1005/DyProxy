@@ -51,10 +51,15 @@ def update_ipv6():
 
     if domain_config['access_code'] != access_code:
         return jsonify({"error": "Unauthorized (incorrect access code)"}), 403
+    
+    if domain_config['ipv6_address'] == new_ipv6:
+        return jsonify({"message": "Already set to the same IPv6"})
 
     if not re.match(r'^[a-fA-F0-9:]+$', new_ipv6):
         return jsonify({"error": "Invalid IPv6 address format"}), 400
-    
+    else:
+        domain_config['ipv6_address'] = new_ipv6
+
     try:
         nginx_config = get_domain_nginx_config(domain_name=domain,
                                                 protocol=domain_config['protocol'],
