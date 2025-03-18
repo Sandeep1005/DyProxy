@@ -51,7 +51,7 @@ def update_ipv6():
 
     if domain_config['access_code'] != access_code:
         return jsonify({"error": "Unauthorized (incorrect access code)"}), 403
-    
+
     if domain_config['ipv6_address'] == new_ipv6:
         return jsonify({"message": "Already set to the same IPv6"})
 
@@ -64,28 +64,28 @@ def update_ipv6():
         nginx_config = get_domain_nginx_config(domain_name=domain,
                                                 protocol=domain_config['protocol'],
                                                 ipv6_address=new_ipv6)
-        
+
         echo_process = subprocess.Popen(["echo", nginx_config], stdout=subprocess.PIPE)
         subprocess.run(["sudo", "tee", domain_config['config_file_path']], stdin=echo_process.stdout, check=True)
         print(f"Created {domain_config['config_file_path']} with IPv6: {new_ipv6}")
 
         # Restart Nginx with sudo
-        subprocess.run(["sudo", "systemctl", "restart", "nginx"], check=True)
+        subprocess.run(["sudo", "systemctl", "reload", "nginx"], check=True)
         print("Nginx restarted successfully")
 
         # Dumping the updated configuration
         with open(CONFIG_FILE, "w") as file:
             yaml.safe_dump(config, file, default_flow_style=False, sort_keys=False)
-            
+
         return jsonify({"message": "IPv6 address updated successfully"})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-    
+
 
 def get_domain_nginx_config(domain_name, protocol, ipv6_address):
     return NGINS_CONFIG_TEMPLATE.replace("$#@domain_name", domain_name).replace("$#@protocol", protocol).replace("$#@ipv6_address", ipv6_address)
-    
+
 
 def create_reverse_proxies():
     for entry in config.get("ddns_entries"):
@@ -100,7 +100,7 @@ def create_reverse_proxies():
         nginx_config = get_domain_nginx_config(domain_name=domain_name,
                                                protocol=protocol,
                                                ipv6_address=ipv6)
-        
+
         echo_process = subprocess.Popen(["echo", nginx_config], stdout=subprocess.PIPE)
         subprocess.run(["sudo", "tee", config_file_path], stdin=echo_process.stdout, check=True)
         print(f"Created {config_file_path} with IPv6: {ipv6}")
@@ -115,9 +115,9 @@ with app.app_context():
     create_reverse_proxies()
 
 
-if __name__ == "__main__":
-    # Start the necessary nginx services first
-    create_reverse_proxies()
+#if __name__ == "__main__":
+#    # Start the necessary nginx services first
+#    create_reverse_proxies()
 
-    # Start the IPv6 updation service 
-    app.run()
+#    # Start the IPv6 updation service
+#    app.run()
