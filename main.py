@@ -222,6 +222,21 @@ def add_entity():
     return jsonify({"message": "Entity added successfully"})
 
 
+@app.post("/delete_entity")
+def delete_entity():
+    if "username" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    index = int(request.form["index"])
+    config = load_config()
+    
+    if index >= len(config["ddns_entries"]):
+        return jsonify({"error": "Entity not found"}), 404
+    
+    del config["ddns_entries"][index]
+    save_config(config)
+    return jsonify({"message": "Entity deleted successfully"})
+
 
 # if __name__ == "__main__":
 #     app.run(debug=True)
