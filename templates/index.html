@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DDNS Configuration</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #007BFF;
+            color: white;
+        }
+        input {
+            width: 100%;
+            padding: 5px;
+            margin: 2px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            padding: 8px 12px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        button.edit {
+            background-color: #007BFF;
+        }
+        button:hover {
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>DDNS Entries</h2>
+        <table>
+            <tr>
+                <th>Domain Name</th>
+                <th>Config Path</th>
+                <th>Protocol</th>
+                <th>IPv6 Address</th>
+                <th>Access Code</th>
+                <th>Actions</th>
+            </tr>
+            {% for entry in entries %}
+            <tr>
+                <td><input type="text" value="{{ entry.domain_name }}" id="domain-{{ loop.index0 }}"></td>
+                <td><input type="text" value="{{ entry.config_file_path }}" id="path-{{ loop.index0 }}"></td>
+                <td><input type="text" value="{{ entry.protocol }}" id="protocol-{{ loop.index0 }}"></td>
+                <td><input type="text" value="{{ entry.ipv6_address or '' }}" id="ipv6-{{ loop.index0 }}"></td>
+                <td><input type="text" value="{{ entry.access_code }}" id="access-{{ loop.index0 }}"></td>
+                <td>
+                    <button class="edit" onclick="updateEntity({{ loop.index0 }})">Edit</button>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+
+        <h3>Add New Entry</h3>
+        <input type="text" id="new-domain" placeholder="Domain Name">
+        <input type="text" id="new-path" placeholder="Config File Path">
+        <input type="text" id="new-protocol" placeholder="Protocol">
+        <input type="text" id="new-ipv6" placeholder="IPv6 Address (optional)">
+        <input type="text" id="new-access" placeholder="Access Code">
+        <button onclick="addEntity()">Add Entry</button>
+    </div>
+
+    <div style="text-align: right; margin-bottom: 10px;">
+        <a href="/logout"><button style="background-color: red;">Logout</button></a>
+    </div>    
+
+    <script>
+        async function updateEntity(index) {
+            let formData = new FormData();
+            formData.append("index", index);
+            formData.append("domain_name", document.getElementById(`domain-${index}`).value);
+            formData.append("config_file_path", document.getElementById(`path-${index}`).value);
+            formData.append("protocol", document.getElementById(`protocol-${index}`).value);
+            formData.append("ipv6_address", document.getElementById(`ipv6-${index}`).value);
+            formData.append("access_code", document.getElementById(`access-${index}`).value);
+
+            let response = await fetch("/update_entity", { method: "POST", body: formData });
+            let result = await response.json();
+            alert(result.message);
+        }
+
+        async function addEntity() {
+            let formData = new FormData();
+            formData.append("domain_name", document.getElementById("new-domain").value);
+            formData.append("config_file_path", document.getElementById("new-path").value);
+            formData.append("protocol", document.getElementById("new-protocol").value);
+            formData.append("ipv6_address", document.getElementById("new-ipv6").value);
+            formData.append("access_code", document.getElementById("new-access").value);
+
+            let response = await fetch("/add_entity", { method: "POST", body: formData });
+            let result = await response.json();
+            alert(result.message);
+            location.reload();
+        }
+    </script>
+</body>
+</html>

@@ -1,8 +1,14 @@
-from flask import Flask, request, jsonify
 import subprocess
 import re
-import os
+
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 import yaml
+import os
+import bcrypt
+import secrets
+from datetime import timedelta
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 
 # Load configuration from YAML file
@@ -71,7 +77,7 @@ def update_ipv6():
 
         # Restart Nginx with sudo
         subprocess.run(["sudo", "systemctl", "reload", "nginx"], check=True)
-        print("Nginx restarted successfully")
+        print("Nginx reloaded successfully")
 
         # Dumping the updated configuration
         with open(CONFIG_FILE, "w") as file:
@@ -110,14 +116,112 @@ def create_reverse_proxies():
     print("Nginx restarted successfully")
 
 
-with app.app_context():
-    # Start the necessary nginx services first
-    create_reverse_proxies()
+app.secret_key = os.getenv("SECRET_KEY", secrets.token_hex(32))  # Secure secret key
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=15)  # Auto logout after 15 min
+
+# Rate limiter to prevent brute-force attacks
+limiter = Limiter(get_remote_address, app=app, default_limits=["5 per minute"])
+
+CONFIG_FILE = "config.yaml"
+AUTH_FILE = "auth.yaml"
+
+def load_config():
+    if not os.path.exists(CONFIG_FILE):
+        return {"ddns_entries": []}
+    with open(CONFIG_FILE, "r") as file:
+        return yaml.safe_load(file) or {"ddns_entries": []}
+
+def save_config(data):
+    with open(CONFIG_FILE, "w") as file:
+        yaml.safe_dump(data, file)
+
+def load_auth():
+    if not os.path.exists(AUTH_FILE):
+        return {"users": {}}
+    with open(AUTH_FILE, "r") as file:
+        return yaml.safe_load(file)
+
+def check_password(stored_password, provided_password):
+    return bcrypt.checkpw(provided_password.encode("utf-8"), stored_password.encode("utf-8"))
+
+@app.route("/", methods=["GET", "POST"])
+@limiter.limit("5 per minute")
+def login():
+    if request.method == "POST":
+        username = request.form["username"]
+        password = request.form["password"]
+        auth_data = load_auth()
+        
+        if username in auth_data["users"] and check_password(auth_data["users"][username], password):
+            session["username"] = username
+            session["session_id"] = secrets.token_hex(16)
+            return redirect(url_for("dashboard"))
+        
+        return render_template("login.html", error="Invalid username or password")
+    
+    return render_template("login.html")
+
+@app.route("/dashboard")
+def dashboard():
+    if "username" not in session:
+        return redirect(url_for("login"))
+    config = load_config()
+    return render_template("index.html", entries=config["ddns_entries"], username=session["username"])
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("login"))
+
+@app.post("/update_entity")
+def update_entity():
+    if "username" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    index = int(request.form["index"])
+    domain_name = request.form["domain_name"]
+    config_file_path = request.form["config_file_path"]
+    protocol = request.form["protocol"]
+    ipv6_address = request.form.get("ipv6_address", None)
+    access_code = request.form["access_code"]
+    
+    config = load_config()
+    if index >= len(config["ddns_entries"]):
+        return jsonify({"error": "Entity not found"}), 404
+    
+    config["ddns_entries"][index] = {
+        "domain_name": domain_name,
+        "config_file_path": config_file_path,
+        "protocol": protocol,
+        "ipv6_address": ipv6_address,
+        "access_code": access_code
+    }
+    save_config(config)
+    return jsonify({"message": "Entity updated successfully"})
+
+@app.post("/add_entity")
+def add_entity():
+    if "username" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    domain_name = request.form["domain_name"]
+    config_file_path = request.form["config_file_path"]
+    protocol = request.form["protocol"]
+    ipv6_address = request.form.get("ipv6_address", None)
+    access_code = request.form["access_code"]
+    
+    config = load_config()
+    config["ddns_entries"].append({
+        "domain_name": domain_name,
+        "config_file_path": config_file_path,
+        "protocol": protocol,
+        "ipv6_address": ipv6_address,
+        "access_code": access_code
+    })
+    save_config(config)
+    return jsonify({"message": "Entity added successfully"})
 
 
-#if __name__ == "__main__":
-#    # Start the necessary nginx services first
-#    create_reverse_proxies()
 
-#    # Start the IPv6 updation service
-#    app.run()
+# if __name__ == "__main__":
+#     app.run(debug=True)
