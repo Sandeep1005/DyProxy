@@ -60,27 +60,27 @@ def update_ipv6():
     else:
         domain_config['ipv6_address'] = new_ipv6
 
-    # try:
-    nginx_config = get_domain_nginx_config(domain_name=domain,
-                                            protocol=domain_config['protocol'],
-                                            ipv6_address=new_ipv6)
-    
-    echo_process = subprocess.Popen(["echo", nginx_config], stdout=subprocess.PIPE)
-    subprocess.run(["sudo", "tee", domain_config['config_file_path']], stdin=echo_process.stdout, check=True)
-    print(f"Created {domain_config['config_file_path']} with IPv6: {new_ipv6}")
+    try:
+        nginx_config = get_domain_nginx_config(domain_name=domain,
+                                                protocol=domain_config['protocol'],
+                                                ipv6_address=new_ipv6)
+        
+        echo_process = subprocess.Popen(["echo", nginx_config], stdout=subprocess.PIPE)
+        subprocess.run(["sudo", "tee", domain_config['config_file_path']], stdin=echo_process.stdout, check=True)
+        print(f"Created {domain_config['config_file_path']} with IPv6: {new_ipv6}")
 
-    # Restart Nginx with sudo
-    subprocess.run(["sudo", "systemctl", "restart", "nginx"], check=True)
-    print("Nginx restarted successfully")
+        # Restart Nginx with sudo
+        subprocess.run(["sudo", "systemctl", "restart", "nginx"], check=True)
+        print("Nginx restarted successfully")
 
-    # Dumping the updated configuration
-    with open(CONFIG_FILE, "w") as file:
-        yaml.safe_dump(config, file, default_flow_style=False, sort_keys=False)
+        # Dumping the updated configuration
+        with open(CONFIG_FILE, "w") as file:
+            yaml.safe_dump(config, file, default_flow_style=False, sort_keys=False)
+            
+        return jsonify({"message": "IPv6 address updated successfully"})
 
-    # except Exception as e:
-    #     return jsonify({"error": str(e)}), 500
-    
-    return jsonify({"message": "IPv6 address updated successfully"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
     
 
 def get_domain_nginx_config(domain_name, protocol, ipv6_address):
