@@ -11,7 +11,7 @@
             background-color: #f4f4f4;
         }
         .container {
-            max-width: 900px;
+            max-width: 800px;
             margin: auto;
             background: white;
             padding: 20px;
@@ -102,72 +102,6 @@
             border-radius: 5px;
             cursor: pointer;
         }
-
-        .container-expandables {
-            display: flex;
-            flex-direction: column;
-            gap: 10px; /* Adds space between panels */
-        }
-
-        .expandable {
-            background: rgb(231, 231, 231);
-            padding: 5px;
-            border-radius: 12px;
-            width: 100%;
-            text-align: center;
-            transition: max-height 0.4s ease-in-out, padding 0.3s ease-in-out;
-            overflow: hidden;
-        }
-
-        .toggle-row {
-            display: flex;
-            justify-content: space-around;
-            cursor: pointer;
-        }
-
-        .hidden-content {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
-            opacity: 0;
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.4s ease-in-out, opacity 0.3s ease-in-out, padding 0.3s ease-in-out;
-        }
-
-        .input-group {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            width: 100%;
-            padding: 5px 0;
-        }
-
-        .input-group label {
-            font-size: 14px;
-            font-weight: bold;
-            width: 30%;
-            text-align: left;
-        }
-
-        .input-group input {
-            padding: 6px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            width: 65%;
-        }
-
-        /* Expanded state */
-        .expanded {
-            max-height: 380px;
-        }
-
-        .expanded .hidden-content {
-            opacity: 1;
-            max-height: 330px;
-            padding: 30px;
-        }
     </style>
 </head>
 <body>
@@ -180,30 +114,29 @@
     <div id="dashboard" class="tab-content">
         <div class="container">
             <h2>DDNS Entries</h2>
-
-            <div class="container-expandables">
+            <table>
+                <tr>
+                    <th>Domain Name</th>
+                    <!-- <th>Config Path</th> -->
+                    <th>Protocol</th>
+                    <th>IPv6 Address</th>
+                    <th>Access Code</th>
+                    <th>Actions</th>
+                </tr>
                 {% for entry in entries %}
-                <div class="expandable" id="panel{{ loop.index }}">
-                    <div class="toggle-row" onclick="toggleExpand('panel{{ loop.index }}')">
-                        <label>{{ entry["domain_name"] }}</label>
-                        <label>{{ entry["protocol"] }}</label>
-                        <label>{{ entry["ipv6_address"] }}</label>
-                    </div>
-                    <div class="hidden-content">
-                        {% for key, value in entry.items()  %}
-                        <div class="input-group">
-                            <label for="input{{ loop.index }}">{{ key }}</label>
-                            <input type="text" id="input{{ loop.index }}" value="{{ value }}">
-                        </div>
-                        {% endfor %}
-                        <div class="button-group">
-                            <button class="edit" onclick="updateEntity({{ loop.index0 }})">Edit</button>
-                            <button class="delete" onclick="deleteEntity({{ loop.index0 }})">Delete</button>
-                        </div>
-                    </div>
-                </div>
+                <tr>
+                    <td><input type="text" value="{{ entry.domain_name }}" id="domain-{{ loop.index0 }}"></td>
+                    <!-- <td><input type="text" value="{{ entry.config_file_path }}" id="path-{{ loop.index0 }}"></td> -->
+                    <td><input type="text" value="{{ entry.protocol }}" id="protocol-{{ loop.index0 }}"></td>
+                    <td><input type="text" value="{{ entry.ipv6_address or '' }}" id="ipv6-{{ loop.index0 }}"></td>
+                    <td><input type="text" value="{{ entry.access_code }}" id="access-{{ loop.index0 }}"></td>
+                    <td style="display: flex; align-items: center; gap: 10px;">
+                        <button class="edit" onclick="updateEntity({{ loop.index0 }})">Edit</button>
+                        <button class="delete" onclick="deleteEntity({{ loop.index0 }})">X</button>
+                    </td>
+                </tr>
                 {% endfor %}
-            </div>
+            </table>
 
             <h3>Add New Entry</h3>
             <input type="text" id="new-domain" placeholder="Domain Name">
@@ -230,31 +163,6 @@
     </div>
 
     <script>
-        function toggleExpand(panelId) {
-            const expandable = document.getElementById(panelId);
-            const content = expandable.querySelector(".hidden-content");
-
-            if (expandable.classList.contains("expanded")) {
-                content.style.maxHeight = content.scrollHeight + "px";
-                requestAnimationFrame(() => {
-                    content.style.maxHeight = "0";
-                    content.style.opacity = "0";
-                });
-
-                setTimeout(() => {
-                    expandable.classList.remove("expanded");
-                }, 400);
-            } else {
-                expandable.classList.add("expanded");
-                content.style.maxHeight = content.scrollHeight + "px";
-                content.style.opacity = "1";
-
-                setTimeout(() => {
-                    content.style.maxHeight = "330px";
-                }, 10);
-            }
-        }
-
         async function updateEntity(index) {
             let formData = new FormData();
             formData.append("index", index);
