@@ -17,21 +17,16 @@ with open(CONFIG_FILE, 'r') as file:
     config = yaml.safe_load(file)
 
 
-NGINS_CONFIG_TEMPLATE = """
-server {
-    listen 80;
-    listen [::]:80;
 
-    server_name $#@domain_name;
+NGINX_TEMPLATE_FILE = "./default_nginx_template.txt"
+def load_nginx_template():
+    if os.path.exists(NGINX_TEMPLATE_FILE):
+        with open(NGINX_TEMPLATE_FILE, "r") as file:
+            return file.read()
+    return ""
 
-    location / {
-        proxy_pass $#@protocol://[$#@ipv6_address];
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    }
-}
-"""
+
+NGINS_CONFIG_TEMPLATE = load_nginx_template()
 
 
 app = Flask(__name__)
@@ -204,7 +199,10 @@ def dashboard():
     if "username" not in session:
         return redirect(url_for("login"))
     config = load_config()
-    return render_template("index.html", entries=config["ddns_entries"], username=session["username"])
+    return render_template("index.html", 
+                           entries=config["ddns_entries"], 
+                           username=session["username"], 
+                           nginx_template=NGINS_CONFIG_TEMPLATE)
 
 
 @app.route("/logout")
@@ -293,3 +291,31 @@ def delete_entity():
         del config["ddns_entries"][index]
         save_config(config)
         return jsonify({"message": "Entity deleted successfully"})
+
+
+@app.post("/update_nginx_template")
+def update_nginx_template():
+    global NGINS_CONFIG_TEMPLATE
+    if "username" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    NGINS_CONFIG_TEMPLATE = request.form["template"]
+    return jsonify({"message": "Nginx template updated successfully"})
+
+
+@app.post("/reset_nginx_template")
+def reset_nginx_template():
+    global NGINS_CONFIG_TEMPLATE
+    if "username" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    NGINS_CONFIG_TEMPLATE = load_nginx_template()
+    return jsonify({"message": "Nginx template reset to default", "template": NGINS_CONFIG_TEMPLATE})
+
+
+@app.route('/get_nginx_template', methods=['GET'])
+def get_nginx_template():
+    if "username" not in session:
+        return jsonify({"error": "Unauthorized"}), 401  # Return 401 if not logged in
+
+    return jsonify({"template": NGINS_CONFIG_TEMPLATE})
