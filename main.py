@@ -68,6 +68,13 @@ def update_ipv6():
         return jsonify({"error": "Unauthorized (incorrect access code)"}), 403
 
     if domain_config['ipv6_address'] == new_ipv6:
+        # Updating last updated value
+        config["last_updated"][domain] = time.time()
+
+        # Dumping the updated configuration
+        with open(CONFIG_FILE, "w") as file:
+            yaml.safe_dump(config, file, default_flow_style=False, sort_keys=False)
+
         return jsonify({"message": "Already set to the same IPv6"})
 
     if not re.match(r'^[a-fA-F0-9:]+$', new_ipv6):
