@@ -1,5 +1,6 @@
 import subprocess
 import re
+import time
 
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 import yaml
@@ -15,7 +16,6 @@ from flask_limiter.util import get_remote_address
 CONFIG_FILE = "./config.yaml"
 with open(CONFIG_FILE, 'r') as file:
     config = yaml.safe_load(file)
-
 
 
 NGINX_TEMPLATE_FILE = "./default_nginx_template.txt"
@@ -37,6 +37,20 @@ def get_domain_config(domain):
         if domain == entry['domain_name']:
             return entry
     return None
+
+
+def update_last_updated_list():
+    for entry in config["ddns_entries"]:
+        if not entry["domain_name"] in config["last_updated"]:
+            config["last_updated"][entry["domain_name"]] = None
+    
+    existing_domains = [entry["domain_name"] for entry in config["ddns_entries"]]
+    for domain_name in config["last_updated"].keys():
+        if domain_name not in existing_domains:
+            del config["last_updated"][entry["domain_name"]]
+
+
+update_last_updated_list()
 
 
 @app.route("/update_ipv6", methods=["POST"])
@@ -73,6 +87,9 @@ def update_ipv6():
         # Reload Nginx with sudo
         subprocess.run(["sudo", "systemctl", "reload", "nginx"], check=True)
         print("Nginx reloaded successfully")
+
+        # Updating last updated value
+        config["last_updated"][domain] = time.time()
 
         # Dumping the updated configuration
         with open(CONFIG_FILE, "w") as file:
@@ -199,10 +216,17 @@ def dashboard():
     if "username" not in session:
         return redirect(url_for("login"))
     config = load_config()
+
+    last_updated_times = config["last_updated"].copy()
+    for domain, prev_time in last_updated_times.items():
+        last_updated_times[domain] = round((time.time() - float(prev_time)) / 60) if prev_time else "NA"
+    
     return render_template("index.html", 
                            entries=config["ddns_entries"], 
                            username=session["username"], 
-                           nginx_template=NGINS_CONFIG_TEMPLATE)
+                           nginx_template=NGINS_CONFIG_TEMPLATE,
+                           entry_keys=config["required_keys"],
+                           last_updated=last_updated_times)
 
 
 @app.route("/logout")
@@ -223,7 +247,7 @@ def update_entity():
     ipv6_address = request.form.get("ipv6_address", None)
     access_code = request.form["access_code"]
     
-    config = load_config()
+    # config = load_config()
     if index >= len(config["ddns_entries"]):
         return jsonify({"error": "Entity not found"}), 404
     
@@ -240,6 +264,7 @@ def update_entity():
     if not is_success:
         return jsonify({"message": "Entity updation failed"})
     else:
+        config["last_updated"][domain_name] = time.time()
         save_config(config)    
         return jsonify({"message": "Entity updated successfully"})
 
@@ -255,7 +280,7 @@ def add_entity():
     ipv6_address = request.form.get("ipv6_address", None)
     access_code = request.form["access_code"]
     
-    config = load_config()
+    # config = load_config()
     config["ddns_entries"].append({
         "domain_name": domain_name,
         "config_file_path": config_file_path,
@@ -269,6 +294,7 @@ def add_entity():
     if not is_success:
         return jsonify({"message": "Entity addition failed"})
     else:
+        update_last_updated_list()
         save_config(config)    
         return jsonify({"message": "Entity added successfully"})
 
@@ -279,7 +305,7 @@ def delete_entity():
         return jsonify({"error": "Unauthorized"}), 401
     
     index = int(request.form["index"])
-    config = load_config()
+    # config = load_config()
     
     if index >= len(config["ddns_entries"]):
         return jsonify({"error": "Entity not found"}), 404
@@ -289,6 +315,7 @@ def delete_entity():
         return jsonify({"message": "Entity deletion failed"})
     else:
         del config["ddns_entries"][index]
+        update_last_updated_list()
         save_config(config)
         return jsonify({"message": "Entity deleted successfully"})
 

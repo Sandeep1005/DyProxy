@@ -106,7 +106,7 @@
         .container-expandables {
             display: flex;
             flex-direction: column;
-            gap: 10px; /* Adds space between panels */
+            /* gap: 10px; */
         }
 
         .expandable {
@@ -117,12 +117,14 @@
             text-align: center;
             transition: max-height 0.4s ease-in-out, padding 0.3s ease-in-out;
             overflow: hidden;
+            margin: 5px 0px 5px 0px;
         }
 
         .toggle-row {
             display: flex;
             justify-content: space-around;
             cursor: pointer;
+            padding:10px;
         }
 
         .hidden-content {
@@ -188,6 +190,7 @@
                         <label>{{ entry["domain_name"] }}</label>
                         <label>{{ entry["protocol"] }}</label>
                         <label>{{ entry["ipv6_address"] }}</label>
+                        <label>{{ last_updated[entry["domain_name"]] }} mins ago</label>
                     </div>
                     <div class="hidden-content">
                         {% for key, value in entry.items()  %}
@@ -205,13 +208,26 @@
                 {% endfor %}
             </div>
 
-            <h3>Add New Entry</h3>
-            <input type="text" id="new-domain" placeholder="Domain Name">
-            <input type="text" id="new-path" placeholder="Config File Path">
-            <input type="text" id="new-protocol" placeholder="Protocol">
-            <input type="text" id="new-ipv6" placeholder="IPv6 Address (optional)">
-            <input type="text" id="new-access" placeholder="Access Code">
-            <button onclick="addEntity()">Add Entry</button>
+
+
+            <div class="expandable" id="add-new-entry-panel">
+                <div class="toggle-row" onclick="toggleExpand('add-new-entry-panel')">
+                    <label>+ Add new entry</label>
+                </div>
+                <div class="hidden-content">
+                    {% for key in entries[0].keys() %}
+                    <div class="input-group">
+                        <label for="new-{{ key }}">{{ key }}</label>
+                        <input type="text" id="new-{{ key }}">
+                    </div>
+                    {% endfor %}
+                    <div class="button-group">
+                        <button onclick="addEntity()">Add</button>
+                        <button class="delete" onclick="clearFields()">Clear</button>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 
@@ -271,16 +287,21 @@
 
         async function addEntity() {
             let formData = new FormData();
-            formData.append("domain_name", document.getElementById("new-domain").value);
-            formData.append("config_file_path", document.getElementById("new-path").value);
-            formData.append("protocol", document.getElementById("new-protocol").value);
-            formData.append("ipv6_address", document.getElementById("new-ipv6").value);
-            formData.append("access_code", document.getElementById("new-access").value);
+
+            {% for key in entry_keys %}
+                formData.append("{{ key }}", document.getElementById("new-{{ key }}").value)
+            {% endfor %}
 
             let response = await fetch("/add_entity", { method: "POST", body: formData });
             let result = await response.json();
             alert(result.message);
             location.reload();
+        }
+
+        function clearFields(id) {
+            {% for key in entry_keys %}
+                document.getElementById("new-{{ key }}").value = "";
+            {% endfor %}
         }
 
         async function deleteEntity(index) {
