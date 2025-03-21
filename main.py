@@ -80,39 +80,39 @@ def update_ipv6():
     if not re.match(r'^[a-fA-F0-9:]+$', new_ipv6):
         return jsonify({"error": "Invalid IPv6 address format"}), 400
     else:
-        old_ipv6 = domain_config['ipv6_address']
+        old_ipv6 = domain_config['ipv6_address'].copy()
         domain_config['ipv6_address'] = new_ipv6
 
-    try:
-        nginx_config = get_domain_nginx_config(domain_name=domain,
-                                                protocol=domain_config['protocol'],
-                                                ipv6_address=new_ipv6)
+        try:
+            nginx_config = get_domain_nginx_config(domain_name=domain,
+                                                    protocol=domain_config['protocol'],
+                                                    ipv6_address=new_ipv6)
 
-        echo_process = subprocess.Popen(["echo", nginx_config], stdout=subprocess.PIPE)
-        subprocess.run(["sudo", "tee", domain_config['config_file_path']], stdin=echo_process.stdout, check=True)
-        print(f"Created {domain_config['config_file_path']} with IPv6: {new_ipv6}")
+            echo_process = subprocess.Popen(["echo", nginx_config], stdout=subprocess.PIPE)
+            subprocess.run(["sudo", "tee", domain_config['config_file_path']], stdin=echo_process.stdout, check=True)
+            print(f"Created {domain_config['config_file_path']} with IPv6: {new_ipv6}")
 
-        # Reload Nginx with sudo
-        subprocess.run(["sudo", "systemctl", "reload", "nginx"], check=True)
-        print("Nginx reloaded successfully")
+            # Reload Nginx with sudo
+            subprocess.run(["sudo", "systemctl", "reload", "nginx"], check=True)
+            print("Nginx reloaded successfully")
 
-        # Updating last updated value
-        config["last_updated"][domain] = time.time()
+            # Updating last updated value
+            config["last_updated"][domain] = time.time()
 
-        # Updating the date at which IPv6 is changed
-        config['ddns_entries'][domain]['ipv6_updated_on'] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+            # Updating the date at which IPv6 is changed
+            domain_config['ipv6_updated_on'] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
 
-        # Updating the previous IPv6
-        domain_config['previous_ipv6'] = old_ipv6
+            # Updating the previous IPv6
+            domain_config['previous_ipv6'] = old_ipv6
 
-        # Dumping the updated configuration
-        with open(CONFIG_FILE, "w") as file:
-            yaml.safe_dump(config, file, default_flow_style=False, sort_keys=False)
+            # Dumping the updated configuration
+            with open(CONFIG_FILE, "w") as file:
+                yaml.safe_dump(config, file, default_flow_style=False, sort_keys=False)
 
-        return jsonify({"message": "IPv6 address updated successfully"})
+            return jsonify({"message": "IPv6 address updated successfully"})
 
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
 
 
 def get_domain_nginx_config(domain_name, protocol, ipv6_address):
