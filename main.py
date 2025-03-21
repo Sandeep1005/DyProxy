@@ -80,7 +80,7 @@ def update_ipv6():
     if not re.match(r'^[a-fA-F0-9:]+$', new_ipv6):
         return jsonify({"error": "Invalid IPv6 address format"}), 400
     else:
-        old_ipv6 = domain_config['ipv6_address'].copy()
+        old_ipv6 = domain_config['ipv6_address']
         domain_config['ipv6_address'] = new_ipv6
 
         try:
