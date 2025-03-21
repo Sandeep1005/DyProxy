@@ -215,13 +215,6 @@
                             <label for="input{{ loop.index }}domain_name">Domain Name:</label>
                             <input type="text" id="input{{ loop.index }}domain_name" value="{{ entry['domain_name'] }}">
                         </div>
-                        <!-- <div class="input-group">
-                            <label for="input{{ loop.index }}protocol">Protocol:</label>
-                            <select id="input{{ loop.index }}protocol" sele>
-                                <option value="http" {% if entry["protocol"] == "http" %}selected{% endif %}>HTTP</option>
-                                <option value="https" {% if entry["protocol"] == "https" %}selected{% endif %}>HTTPS</option>
-                            </select>
-                        </div> -->
                         <div class="input-group">
                             <label for="input{{ loop.index }}ipv6_address">IPv6 target:</label>
                             <select id="input{{ loop.index }}protocol" sele style="width: 10%;">
@@ -317,21 +310,19 @@
                 expandable.classList.add("expanded");
                 content.style.maxHeight = content.scrollHeight + "px";
                 content.style.opacity = "1";
-
-                // setTimeout(() => {
-                //     content.style.maxHeight = "330px";
-                // }, 10);
             }
         }
 
         async function updateEntity(index) {
             let formData = new FormData();
             formData.append("index", index);
-            formData.append("domain_name", document.getElementById(`domain-${index}`).value);
-            formData.append("config_file_path", document.getElementById(`path-${index}`).value);
-            formData.append("protocol", document.getElementById(`protocol-${index}`).value);
-            formData.append("ipv6_address", document.getElementById(`ipv6-${index}`).value);
-            formData.append("access_code", document.getElementById(`access-${index}`).value);
+            formData.append("domain_name", document.getElementById(`input${index}domain_name`).value);
+            formData.append("config_file_path", document.getElementById(`input${index}config_file_path`).value);
+            formData.append("protocol", document.getElementById(`input${index}protocol`).value);
+            formData.append("ipv6_address", document.getElementById(`input${index}ipv6_address`).value);
+            formData.append("access_code", document.getElementById(`input${index}access_code`).value);
+            formData.append("ssl_private_key_path", document.getElementById(`input${index}ssl_private_key_path`).value);
+            formData.append("ssl_certificate_crt_path", document.getElementById(`input${index}ssl_certificate_crt_path`).value);
 
             let response = await fetch("/update_entity", { method: "POST", body: formData });
             let result = await response.json();

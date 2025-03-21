@@ -80,6 +80,7 @@ def update_ipv6():
     if not re.match(r'^[a-fA-F0-9:]+$', new_ipv6):
         return jsonify({"error": "Invalid IPv6 address format"}), 400
     else:
+        old_ipv6 = domain_config['ipv6_address']
         domain_config['ipv6_address'] = new_ipv6
 
     try:
@@ -97,6 +98,12 @@ def update_ipv6():
 
         # Updating last updated value
         config["last_updated"][domain] = time.time()
+
+        # Updating the date at which IPv6 is changed
+        config['ddns_entries'][domain]['ipv6_updated_on'] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+
+        # Updating the previous IPv6
+        domain_config['previous_ipv6'] = old_ipv6
 
         # Dumping the updated configuration
         with open(CONFIG_FILE, "w") as file:
