@@ -18,15 +18,23 @@ with open(CONFIG_FILE, 'r') as file:
     config = yaml.safe_load(file)
 
 
-NGINX_TEMPLATE_FILE = "./default_nginx_template.txt"
-def load_nginx_template():
-    if os.path.exists(NGINX_TEMPLATE_FILE):
-        with open(NGINX_TEMPLATE_FILE, "r") as file:
-            return file.read()
-    return ""
+NGINX_TEMPLATE_FILE_HTTP = "./default_nginx_template_http.txt"
+NGINX_TEMPLATE_FILE_HTTPS = "./default_nginx_template_https.txt"
+def load_nginx_template(protocol='http'):
+    if protocol == 'http':
+        if os.path.exists(NGINX_TEMPLATE_FILE_HTTP):
+            with open(NGINX_TEMPLATE_FILE_HTTP, "r") as file:
+                return file.read()
+        return ""
+    
+    if protocol == 'https':
+        if os.path.exists(NGINX_TEMPLATE_FILE_HTTPS):
+            with open(NGINX_TEMPLATE_FILE_HTTPS, "r") as file:
+                return file.read()
+        return ""
+    
 
-
-NGINS_CONFIG_TEMPLATE = load_nginx_template()
+NGINX_CONFIG_TEMPLATE = load_nginx_template()
 
 
 app = Flask(__name__)
@@ -86,7 +94,9 @@ def update_ipv6():
         try:
             nginx_config = get_domain_nginx_config(domain_name=domain,
                                                     protocol=domain_config['protocol'],
-                                                    ipv6_address=new_ipv6)
+                                                    ipv6_address=new_ipv6,
+                                                    ssl_private_key_path=domain_config['ssl_private_key_path'],
+                                                    ssl_certificate_crt_path=domain_config['ssl_certificate_crt_path'])
 
             echo_process = subprocess.Popen(["echo", nginx_config], stdout=subprocess.PIPE)
             subprocess.run(["sudo", "tee", domain_config['config_file_path']], stdin=echo_process.stdout, check=True)
@@ -115,8 +125,22 @@ def update_ipv6():
             return jsonify({"error": str(e)}), 500
 
 
-def get_domain_nginx_config(domain_name, protocol, ipv6_address):
-    return NGINS_CONFIG_TEMPLATE.replace("$#@domain_name", domain_name).replace("$#@protocol", protocol).replace("$#@ipv6_address", ipv6_address)
+def get_domain_nginx_config(domain_name, protocol, ipv6_address, ssl_private_key_path=None, ssl_certificate_crt_path=None):
+    if ssl_private_key_path is None or ssl_certificate_crt_path is None:
+        if os.path.exists(ssl_private_key_path) is False or os.path.exists(ssl_certificate_crt_path) is False:
+            config = load_nginx_template()
+            config = config.replace("$#@domain_name", domain_name)
+            config = config.replace("$#@protocol", protocol)
+            config = config.replace("$#@ipv6_address", ipv6_address)
+            return config
+    else:
+        config = load_nginx_template(protocol='https')
+        config = config.replace("$#@domain_name", domain_name)
+        config = config.replace("$#@protocol", protocol)
+        config = config.replace("$#@ipv6_address", ipv6_address)
+        config = config.replace("$#@ssl_private_key_path", ssl_private_key_path)
+        config = config.replace("$#@ssl_certificate_crt_path", ssl_certificate_crt_path)
+        return config
 
 
 def create_reverse_proxies():
@@ -125,13 +149,17 @@ def create_reverse_proxies():
         protocol = entry['protocol']
         ipv6 = entry['ipv6_address']
         config_file_path = entry['config_file_path']
+        ssl_private_key_path = entry['ssl_private_key_path']
+        ssl_certificate_crt_path = entry['ssl_certificate_crt_path']
 
         if ipv6 is None:
             ipv6 = "2001:db8::1"
 
         nginx_config = get_domain_nginx_config(domain_name=domain_name,
                                                protocol=protocol,
-                                               ipv6_address=ipv6)
+                                               ipv6_address=ipv6,
+                                               ssl_private_key_path=ssl_private_key_path,
+                                               ssl_certificate_crt_path=ssl_certificate_crt_path)
 
         echo_process = subprocess.Popen(["echo", nginx_config], stdout=subprocess.PIPE)
         subprocess.run(["sudo", "tee", config_file_path], stdin=echo_process.stdout, check=True)
@@ -142,11 +170,18 @@ def create_reverse_proxies():
     print("Nginx reloaded successfully")
 
 
-def create_single_reverse_proxy(domain_name, config_file_path, protocol, ipv6_address):
+def create_single_reverse_proxy(domain_name, 
+                                config_file_path, 
+                                protocol, 
+                                ipv6_address, 
+                                ssl_private_key_path, 
+                                ssl_certificate_crt_path):
     try:
         nginx_config = get_domain_nginx_config(domain_name=domain_name,
                                                 protocol=protocol,
-                                                ipv6_address=ipv6_address)
+                                                ipv6_address=ipv6_address,
+                                                ssl_private_key_path=ssl_private_key_path,
+                                                ssl_certificate_crt_path=ssl_certificate_crt_path)
         
         echo_process = subprocess.Popen(["echo", nginx_config], stdout=subprocess.PIPE)
         subprocess.run(["sudo", "tee", config_file_path], stdin=echo_process.stdout, check=True)
@@ -238,7 +273,7 @@ def dashboard():
     return render_template("index.html", 
                            entries=config["ddns_entries"], 
                            username=session["username"], 
-                           nginx_template=NGINS_CONFIG_TEMPLATE,
+                           nginx_template=NGINX_CONFIG_TEMPLATE,
                            entry_keys=config["required_keys"],
                            last_updated=last_updated_times)
 
@@ -260,6 +295,9 @@ def update_entity():
     protocol = request.form["protocol"]
     ipv6_address = request.form.get("ipv6_address", None)
     access_code = request.form["access_code"]
+    nginx_config = request.form["nginx_config"]
+    ssl_private_key_path = request.form["ssl_private_key_path"]
+    ssl_certificate_crt_path = request.form["ssl_certificate_crt_path"]
     
     # config = load_config()
     if index >= len(config["ddns_entries"]):
@@ -270,11 +308,19 @@ def update_entity():
         "config_file_path": config_file_path,
         "protocol": protocol,
         "ipv6_address": ipv6_address,
-        "access_code": access_code
+        "access_code": access_code,
+        "nginx_config": nginx_config,
+        "ssl_private_key_path": ssl_private_key_path,
+        "ssl_certificate_crt_path": ssl_certificate_crt_path
     }
 
     # Updating the nginx config for the site
-    is_success = create_single_reverse_proxy(domain_name, config_file_path, protocol, ipv6_address)
+    is_success = create_single_reverse_proxy(domain_name, 
+                                             config_file_path, 
+                                             protocol, 
+                                             ipv6_address, 
+                                             ssl_private_key_path,
+                                             ssl_certificate_crt_path)
     if not is_success:
         return jsonify({"message": "Entity updation failed"})
     else:
@@ -293,6 +339,9 @@ def add_entity():
     protocol = request.form["protocol"]
     ipv6_address = request.form.get("ipv6_address", None)
     access_code = request.form["access_code"]
+    nginx_config = request.form["nginx_config"]
+    ssl_private_key_path = request.form["ssl_private_key_path"]
+    ssl_certificate_crt_path = request.form["ssl_certificate_crt_path"]
     
     # config = load_config()
     config["ddns_entries"].append({
@@ -300,11 +349,21 @@ def add_entity():
         "config_file_path": config_file_path,
         "protocol": protocol,
         "ipv6_address": ipv6_address,
-        "access_code": access_code
+        "access_code": access_code,
+        "previous_ipv6": "0000:0000:0000:0000:0000:0000:0000:0000",
+        "ipv6_updated_on": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
+        "nginx_config": nginx_config,
+        "ssl_private_key_path": ssl_private_key_path,
+        "ssl_certificate_crt_path": ssl_certificate_crt_path
     })
 
     # Updating the nginx config for the site
-    is_success = create_single_reverse_proxy(domain_name, config_file_path, protocol, ipv6_address)
+    is_success = create_single_reverse_proxy(domain_name, 
+                                            config_file_path, 
+                                            protocol, 
+                                            ipv6_address, 
+                                            ssl_private_key_path, 
+                                            ssl_certificate_crt_path)
     if not is_success:
         return jsonify({"message": "Entity addition failed"})
     else:
@@ -336,22 +395,22 @@ def delete_entity():
 
 @app.post("/update_nginx_template")
 def update_nginx_template():
-    global NGINS_CONFIG_TEMPLATE
+    global NGINX_CONFIG_TEMPLATE
     if "username" not in session:
         return jsonify({"error": "Unauthorized"}), 401
 
-    NGINS_CONFIG_TEMPLATE = request.form["template"]
+    NGINX_CONFIG_TEMPLATE = request.form["template"]
     return jsonify({"message": "Nginx template updated successfully"})
 
 
 @app.post("/reset_nginx_template")
 def reset_nginx_template():
-    global NGINS_CONFIG_TEMPLATE
+    global NGINX_CONFIG_TEMPLATE
     if "username" not in session:
         return jsonify({"error": "Unauthorized"}), 401
 
-    NGINS_CONFIG_TEMPLATE = load_nginx_template()
-    return jsonify({"message": "Nginx template reset to default", "template": NGINS_CONFIG_TEMPLATE})
+    NGINX_CONFIG_TEMPLATE = load_nginx_template()
+    return jsonify({"message": "Nginx template reset to default", "template": NGINX_CONFIG_TEMPLATE})
 
 
 @app.route('/get_nginx_template', methods=['GET'])
@@ -359,4 +418,4 @@ def get_nginx_template():
     if "username" not in session:
         return jsonify({"error": "Unauthorized"}), 401  # Return 401 if not logged in
 
-    return jsonify({"template": NGINS_CONFIG_TEMPLATE})
+    return jsonify({"template": NGINX_CONFIG_TEMPLATE})
