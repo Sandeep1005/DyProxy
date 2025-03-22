@@ -119,7 +119,7 @@ def get_current_date_time():
 @app.route("/update_ipv6", methods=['POST'])
 def update_ipv6():
     domain_name = request.json.get("domain_name")
-    access_code = request.json.get("acces_code")
+    access_code = request.json.get("access_code")
     new_ipv6 = request.json.get("ipv6")
 
     ssl_private_key = None
