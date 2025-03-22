@@ -367,6 +367,8 @@ def add_entity():
         "previous_ipv6": "0000:0000:0000:0000:0000:0000:0000:0000",
         "ipv6_updated_on": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
         "nginx_config": nginx_config,
+        "ssl_private_key_path": "",
+        "ssl_certificate_crt_path": ""
     })
 
     # Updating the nginx config for the site
