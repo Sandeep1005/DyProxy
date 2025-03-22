@@ -101,13 +101,15 @@ def update_ssl_keys(domain_config, ssl_private_key, ssl_certificate_crt):
         domain_config['protocol'] = 'http'
     else:
         # Update the SSL key and certificate files
-        dir_name = os.path.dirname(domain_config['ssl_private_key'])
+        dir_name = os.path.dirname(domain_config['ssl_private_key_path'])
         if not os.path.exists(dir_name):
             os.makedirs(dir_name)
-        with open(domain_config['ssl_private_key_path'], 'w') as file:
-            file.write(ssl_private_key)
-        with open(domain_config['ssl_certificate_crt_path'], 'w') as file:
-            file.write(ssl_certificate_crt)
+        
+        command = f"echo '{ssl_private_key}' | sudo tee {domain_config['ssl_private_key_path']} > /dev/null"
+        subprocess.run(command, shell=True, check=True)
+
+        command = f"echo '{ssl_certificate_crt}' | sudo tee {domain_config['ssl_certificate_crt_path']} > /dev/null"
+        subprocess.run(command, shell=True, check=True)
 
         domain_config['protocol'] = 'https'
 
