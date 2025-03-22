@@ -61,11 +61,10 @@ def update_last_updated_list():
 update_last_updated_list()
 
 
-def is_authentic_request(domain_name, acces_code):
-    domain_config = get_domain_config(domain_name)
+def is_authentic_request(domain_config, access_code):
     if domain_config is None:
         return False
-    elif domain_config['access_code'] == acces_code:
+    elif domain_config['access_code'] == access_code:
         return True
     else:
         return False
@@ -135,7 +134,7 @@ def update_ipv6():
         return jsonify({"error": "Domain is not registered for DDNS"}), 403
     
     # 2) Authentication with domain name and access code
-    if not is_authentic_request(domain_name=domain_name, acces_code=access_code):
+    if not is_authentic_request(domain_config=domain_config, access_code=access_code):
         return jsonify({"error": "Unauthorized (incorrect access code)"}), 403
     
     # 3) Check if IPv6 address is valid
