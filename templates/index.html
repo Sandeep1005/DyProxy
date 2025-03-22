@@ -236,14 +236,6 @@
                             <input type="radio" name="nginx_config" value="default" {% if entry['nginx_config'] == "default" %}checked{% endif %}> Default
                             <input type="radio" name="nginx_config" value="custom" {% if entry['nginx_config'] == "custom" %}checked{% endif %}> Custom
                         </div>
-                        <div class="input-group">
-                            <label for="input{{ loop.index }}ssl_private_key_path">SSL private.key path:</label>
-                            <input type="text" id="input{{ loop.index }}ssl_private_key_path" value="{{ entry['ssl_private_key_path'] }}">
-                        </div>
-                        <div class="input-group">
-                            <label for="input{{ loop.index }}ssl_certificate_crt_path">SSL certificate.crt path:</label>
-                            <input type="text" id="input{{ loop.index }}ssl_certificate_crt_path" value="{{ entry['ssl_certificate_crt_path'] }}">
-                        </div>
 
                         <div class="button-group">
                             <button class="edit" onclick="updateEntity({{ loop.index }})">Edit</button>
@@ -254,14 +246,12 @@
                 {% endfor %}
             </div>
 
-
-
             <div class="expandable" id="add-new-entry-panel">
                 <div class="toggle-row" onclick="toggleExpand('add-new-entry-panel')">
                     <label>+ Add new entry</label>
                 </div>
                 <div class="hidden-content">
-                    {% for key in entries[0].keys() %}
+                    {% for key in entry_keys %}
                     <div class="input-group">
                         <label for="new-{{ key }}">{{ key }}</label>
                         <input type="text" id="new-{{ key }}">
@@ -321,8 +311,6 @@
             formData.append("protocol", document.getElementById(`input${index}protocol`).value);
             formData.append("ipv6_address", document.getElementById(`input${index}ipv6_address`).value);
             formData.append("access_code", document.getElementById(`input${index}access_code`).value);
-            formData.append("ssl_private_key_path", document.getElementById(`input${index}ssl_private_key_path`).value);
-            formData.append("ssl_certificate_crt_path", document.getElementById(`input${index}ssl_certificate_crt_path`).value);
 
             let response = await fetch("/update_entity", { method: "POST", body: formData });
             let result = await response.json();

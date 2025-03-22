@@ -67,6 +67,12 @@ def update_ipv6():
     access_code = request.json.get("access_code")
     new_ipv6 = request.json.get("ipv6")
 
+    ssl_private_key = None
+    ssl_certificate_crt = None
+    if "ssl_private_key" in request.json and "ssl_certificate_crt" in request.json:
+        ssl_private_key = request.json.get("ssl_private_key")
+        ssl_certificate_crt = request.json.get("ssl_certificate_crt")
+
     domain_config = get_domain_config(domain)
 
     if domain_config is None:
@@ -90,6 +96,20 @@ def update_ipv6():
     else:
         old_ipv6 = domain_config['ipv6_address']
         domain_config['ipv6_address'] = new_ipv6
+        
+        # Handle SSL changes
+        if ssl_private_key is not None and ssl_certificate_crt is not None:
+            folder_path = os.path.join('etc', 'nginx', 'ssl', domain_config['domain_name'])
+            domain_config['ssl_private_key_path'] = os.path.join(folder_path, 'private.key')
+            domain_config['ssl_certificate_crt_path'] = os.path.join(folder_path, 'certificate.crt')
+            
+            # Writing the SSL certs to the paths
+            if not os.path.exists(folder_path):
+                os.makedirs(folder_path)
+            with open(domain_config['ssl_private_key_path'], 'w') as file:
+                file.write(ssl_private_key)
+            with open(domain_config['ssl_certificate_crt_path'], 'w') as file:
+                file.write(ssl_certificate_crt)
 
         try:
             nginx_config = get_domain_nginx_config(domain_name=domain,
@@ -296,8 +316,6 @@ def update_entity():
     ipv6_address = request.form.get("ipv6_address", None)
     access_code = request.form["access_code"]
     nginx_config = request.form["nginx_config"]
-    ssl_private_key_path = request.form["ssl_private_key_path"]
-    ssl_certificate_crt_path = request.form["ssl_certificate_crt_path"]
     
     # config = load_config()
     if index >= len(config["ddns_entries"]):
@@ -310,8 +328,6 @@ def update_entity():
         "ipv6_address": ipv6_address,
         "access_code": access_code,
         "nginx_config": nginx_config,
-        "ssl_private_key_path": ssl_private_key_path,
-        "ssl_certificate_crt_path": ssl_certificate_crt_path
     }
 
     # Updating the nginx config for the site
@@ -319,8 +335,8 @@ def update_entity():
                                              config_file_path, 
                                              protocol, 
                                              ipv6_address, 
-                                             ssl_private_key_path,
-                                             ssl_certificate_crt_path)
+                                             config["ddns_entries"][index]['ssl_private_key_path'],
+                                             config["ddns_entries"][index]['ssl_certificate_crt_path'])
     if not is_success:
         return jsonify({"message": "Entity updation failed"})
     else:
@@ -340,8 +356,6 @@ def add_entity():
     ipv6_address = request.form.get("ipv6_address", None)
     access_code = request.form["access_code"]
     nginx_config = request.form["nginx_config"]
-    ssl_private_key_path = request.form["ssl_private_key_path"]
-    ssl_certificate_crt_path = request.form["ssl_certificate_crt_path"]
     
     # config = load_config()
     config["ddns_entries"].append({
@@ -353,17 +367,13 @@ def add_entity():
         "previous_ipv6": "0000:0000:0000:0000:0000:0000:0000:0000",
         "ipv6_updated_on": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
         "nginx_config": nginx_config,
-        "ssl_private_key_path": ssl_private_key_path,
-        "ssl_certificate_crt_path": ssl_certificate_crt_path
     })
 
     # Updating the nginx config for the site
     is_success = create_single_reverse_proxy(domain_name, 
                                             config_file_path, 
                                             protocol, 
-                                            ipv6_address, 
-                                            ssl_private_key_path, 
-                                            ssl_certificate_crt_path)
+                                            ipv6_address)
     if not is_success:
         return jsonify({"message": "Entity addition failed"})
     else:
