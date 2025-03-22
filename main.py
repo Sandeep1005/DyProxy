@@ -85,6 +85,28 @@ def update_ipv6():
         # Updating last updated value
         config["last_updated"][domain] = time.time()
 
+        # Handle SSL changes
+        if ssl_private_key is not None and ssl_certificate_crt is not None:
+            folder_path = os.path.join('etc', 'nginx', 'ssl', domain_config['domain_name'])
+            domain_config['ssl_private_key_path'] = os.path.join(folder_path, 'private.key')
+            domain_config['ssl_certificate_crt_path'] = os.path.join(folder_path, 'certificate.crt')
+            domain_config['protocol'] = 'https'
+            
+            # Writing the SSL certs to the paths
+            if not os.path.exists(folder_path):
+                os.makedirs(folder_path)
+            with open(domain_config['ssl_private_key_path'], 'w') as file:
+                file.write(ssl_private_key)
+            with open(domain_config['ssl_certificate_crt_path'], 'w') as file:
+                file.write(ssl_certificate_crt)
+
+            create_single_reverse_proxy(domain_config['domain_name'], 
+                                        domain_config['config_file_path'], 
+                                        domain_config['protocol'], 
+                                        domain_config['ipv6_address'], 
+                                        domain_config['ssl_private_key_path'], 
+                                        domain_config['ssl_certificate_crt_path'])
+
         # Dumping the updated configuration
         with open(CONFIG_FILE, "w") as file:
             yaml.safe_dump(config, file, default_flow_style=False, sort_keys=False)
@@ -102,6 +124,7 @@ def update_ipv6():
             folder_path = os.path.join('etc', 'nginx', 'ssl', domain_config['domain_name'])
             domain_config['ssl_private_key_path'] = os.path.join(folder_path, 'private.key')
             domain_config['ssl_certificate_crt_path'] = os.path.join(folder_path, 'certificate.crt')
+            domain_config['protocol'] = 'https'
             
             # Writing the SSL certs to the paths
             if not os.path.exists(folder_path):
