@@ -61,8 +61,140 @@ def update_last_updated_list():
 update_last_updated_list()
 
 
-@app.route("/update_ipv6", methods=["POST"])
+def is_authentic_request(domain_name, acces_code):
+    domain_config = get_domain_config(domain_name)
+    if domain_config is None:
+        return False
+    elif domain_config['access_code'] == acces_code:
+        return True
+    else:
+        return False
+    
+
+def is_ipv6_updated(domain_config, new_ipv6):
+    if domain_config['ipv6_address'] == new_ipv6:
+        return False
+    else: return True
+
+
+def is_ssl_certs_updated(domain_config, ssl_private_key, ssl_certificate_crt):
+    if os.path.exists(domain_config['ssl_private_key']) and os.path.exists(domain_config['ssl_certificate_crt']):
+        with open(domain_config['ssl_private_key'], 'r') as file:
+            prev_ssl_private_key = file.read()
+        with open(domain_config['ssl_certificate_crt'], 'r') as file:
+            prev_ssl_certificate_crt = file.read()
+        
+        if ssl_private_key is None or ssl_certificate_crt is None:
+            return True
+        elif prev_ssl_certificate_crt == ssl_certificate_crt and prev_ssl_private_key == ssl_private_key:
+            return False
+        else:
+            return True
+    else:
+        if ssl_private_key is None or ssl_certificate_crt is None:
+            return False
+        else:
+            return True
+        
+
+def update_ssl_keys(domain_config, ssl_private_key, ssl_certificate_crt):
+    if ssl_private_key is None or ssl_certificate_crt is None:
+        domain_config['protocol'] = 'http'
+    else:
+        # Update the SSL key and certificate files
+        dir_name = os.path.dirname(domain_config['ssl_private_key'])
+        if not os.path.exists(dir_name):
+            os.makedirs(dir_name)
+        with open(domain_config['ssl_private_key'], 'w') as file:
+            file.write(ssl_private_key)
+        with open(domain_config['ssl_certificate_crt'], 'w') as file:
+            file.write(ssl_certificate_crt)
+
+        domain_config['protocol'] = 'https'
+
+    
+def get_current_date_time():
+    return time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+
+
+@app.route("/update_ipv6", methods=['POST'])
 def update_ipv6():
+    domain_name = request.json.get("domain_name")
+    access_code = request.json.get("acces_code")
+    new_ipv6 = request.json.get("ipv6")
+
+    ssl_private_key = None
+    ssl_certificate_crt = None
+    if "ssl_private_key" in request.json and "ssl_certificate_crt" in request.json:
+        ssl_private_key = request.json.get("ssl_private_key")
+        ssl_certificate_crt = request.json.get("ssl_certificate_crt")
+
+    # 1) Check if domain name exists in current sites
+    domain_config = get_domain_config(domain_name)
+    if domain_config is None:
+        return jsonify({"error": "Domain is not registered for DDNS"}), 403
+    
+    # 2) Authentication with domain name and access code
+    if not is_authentic_request(domain_name=domain_name, acces_code=access_code):
+        return jsonify({"error": "Unauthorized (incorrect access code)"}), 403
+    
+    # 3) Check if IPv6 address is valid
+    if not re.match(r'^[a-fA-F0-9:]+$', new_ipv6):
+        return jsonify({"error": "Invalid IPv6 address format"}), 400
+    
+    # Last ping time update
+    config["last_updated"][domain_name] = time.time()
+
+    # Check which parts are updated
+    ipv6_updated = is_ipv6_updated(domain_config=domain_config, new_ipv6=new_ipv6)
+    ssl_updated = is_ssl_certs_updated(domain_config=domain_config, ssl_private_key=ssl_private_key, ssl_certificate_crt=ssl_certificate_crt)
+
+    # If neither got updated
+    if (ipv6_updated is False) and (ssl_updated is False):
+        return jsonify({"message": "IPv6 and SSL are both same as requested values"})
+
+    # If IPv6 is updated
+    if ipv6_updated:
+        domain_config['previous_ipv6'] = domain_config['ipv6_address']
+        domain_config['ipv6_address'] = new_ipv6
+        domain_config['ipv6_updated_on'] = get_current_date_time()
+
+    # If SSL is updated
+    if ssl_updated:
+        # Updating the files of SSL keys
+        update_ssl_keys(domain_config, ssl_private_key, ssl_certificate_crt)
+        domain_config['ssl_updated_on'] = get_current_date_time()
+
+    # Generate final NGINX config
+    nginx_config = get_domain_nginx_config(domain_name=domain_config['domain_name'],
+                                            protocol=domain_config['protocol'],
+                                            ipv6_address=domain_config['ipv6_address'],
+                                            ssl_private_key_path=domain_config['ssl_private_key_path'],
+                                            ssl_certificate_crt_path=domain_config['ssl_certificate_crt_path'])
+    
+    # Change the nginx config file
+    echo_process = subprocess.Popen(["echo", nginx_config], stdout=subprocess.PIPE)
+    subprocess.run(["sudo", "tee", domain_config['config_file_path']], stdin=echo_process.stdout, check=True)
+    print(f"Created {domain_config['config_file_path']} with IPv6: {new_ipv6}")
+
+    # Reload Nginx with sudo
+    subprocess.run(["sudo", "systemctl", "reload", "nginx"], check=True)
+    print("Nginx reloaded successfully")
+
+    # Dumping the updated configuration
+    with open(CONFIG_FILE, "w") as file:
+        yaml.safe_dump(config, file, default_flow_style=False, sort_keys=False)
+
+    if ipv6_updated and ssl_updated:
+        return jsonify({"message": "Both IPv6 and SSL are updated"})
+    elif ipv6_updated:
+        return jsonify({"message": "Only IPv6 is updated"})
+    else:
+        return jsonify({"message": "Only SSL is updated"})
+
+
+@app.route("/update_ipv6_old", methods=["POST"])
+def update_ipv6_old():
     domain = request.json.get("domain_name")
     access_code = request.json.get("access_code")
     new_ipv6 = request.json.get("ipv6")
@@ -390,8 +522,8 @@ def add_entity():
         "previous_ipv6": "0000:0000:0000:0000:0000:0000:0000:0000",
         "ipv6_updated_on": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
         "nginx_config": nginx_config,
-        "ssl_private_key_path": "",
-        "ssl_certificate_crt_path": ""
+        "ssl_private_key_path": f"/etc/nginx/ssl/{domain_name}/private.key",
+        "ssl_certificate_crt_path": f"/etc/nginx/ssl/{domain_name}/certificate.crt"
     })
 
     # Updating the nginx config for the site
