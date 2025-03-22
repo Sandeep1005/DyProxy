@@ -77,10 +77,10 @@ def is_ipv6_updated(domain_config, new_ipv6):
 
 
 def is_ssl_certs_updated(domain_config, ssl_private_key, ssl_certificate_crt):
-    if os.path.exists(domain_config['ssl_private_key']) and os.path.exists(domain_config['ssl_certificate_crt']):
-        with open(domain_config['ssl_private_key'], 'r') as file:
+    if os.path.exists(domain_config['ssl_private_key_path']) and os.path.exists(domain_config['ssl_certificate_crt_path']):
+        with open(domain_config['ssl_private_key_path'], 'r') as file:
             prev_ssl_private_key = file.read()
-        with open(domain_config['ssl_certificate_crt'], 'r') as file:
+        with open(domain_config['ssl_certificate_crt_path'], 'r') as file:
             prev_ssl_certificate_crt = file.read()
         
         if ssl_private_key is None or ssl_certificate_crt is None:
@@ -104,9 +104,9 @@ def update_ssl_keys(domain_config, ssl_private_key, ssl_certificate_crt):
         dir_name = os.path.dirname(domain_config['ssl_private_key'])
         if not os.path.exists(dir_name):
             os.makedirs(dir_name)
-        with open(domain_config['ssl_private_key'], 'w') as file:
+        with open(domain_config['ssl_private_key_path'], 'w') as file:
             file.write(ssl_private_key)
-        with open(domain_config['ssl_certificate_crt'], 'w') as file:
+        with open(domain_config['ssl_certificate_crt_path'], 'w') as file:
             file.write(ssl_certificate_crt)
 
         domain_config['protocol'] = 'https'
