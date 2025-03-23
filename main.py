@@ -12,14 +12,33 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
 
-# Load configuration from YAML file
-CONFIG_FILE = "./config.yaml"
-with open(CONFIG_FILE, 'r') as file:
-    config = yaml.safe_load(file)
-
+CONFIG_FILE = "./config_new.yaml"
 
 NGINX_TEMPLATE_FILE_HTTP = "./default_nginx_template_http.txt"
 NGINX_TEMPLATE_FILE_HTTPS = "./default_nginx_template_https.txt"
+
+AUTH_FILE = "auth.yaml"
+
+
+def load_config():
+    with open(CONFIG_FILE, 'r') as file:
+        config = yaml.safe_load(file)
+    return config
+
+
+def save_config(updated_config):
+    with open(CONFIG_FILE, "w") as file:
+        yaml.safe_dump(updated_config, file, default_flow_style=False, sort_keys=False)
+
+
+def get_domain_config(domain):
+    config = load_config()
+    if domain in config.get("ddns_entries"):
+        return config["ddns_entries"][domain]
+    else:
+        return None
+    
+
 def load_nginx_template(protocol='http'):
     if protocol == 'http':
         if os.path.exists(NGINX_TEMPLATE_FILE_HTTP):
@@ -34,31 +53,15 @@ def load_nginx_template(protocol='http'):
         return ""
     
 
-NGINX_CONFIG_TEMPLATE = load_nginx_template()
-
-
-app = Flask(__name__)
-
-
-def get_domain_config(domain):
-    for entry in config.get("ddns_entries"):
-        if domain == entry['domain_name']:
-            return entry
-    return None
-
-
-def update_last_updated_list():
-    for entry in config["ddns_entries"]:
-        if not entry["domain_name"] in config["last_updated"]:
-            config["last_updated"][entry["domain_name"]] = None
+def load_auth():
+    if not os.path.exists(AUTH_FILE):
+        return {"users": {}}
+    with open(AUTH_FILE, "r") as file:
+        return yaml.safe_load(file)
     
-    existing_domains = [entry["domain_name"] for entry in config["ddns_entries"]]
-    for domain_name in config["last_updated"].keys():
-        if domain_name not in existing_domains:
-            del config["last_updated"][entry["domain_name"]]
 
-
-update_last_updated_list()
+def check_password(stored_password, provided_password):
+    return bcrypt.checkpw(provided_password.encode("utf-8"), stored_password.encode("utf-8"))
 
 
 def is_authentic_request(domain_config, access_code):
@@ -118,82 +121,6 @@ def get_current_date_time():
     return time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
 
 
-@app.route("/update_ipv6", methods=['POST'])
-def update_ipv6():
-    domain_name = request.json.get("domain_name")
-    access_code = request.json.get("access_code")
-    new_ipv6 = request.json.get("ipv6")
-
-    ssl_private_key = None
-    ssl_certificate_crt = None
-    if "ssl_private_key" in request.json and "ssl_certificate_crt" in request.json:
-        ssl_private_key = request.json.get("ssl_private_key")
-        ssl_certificate_crt = request.json.get("ssl_certificate_crt")
-
-    # 1) Check if domain name exists in current sites
-    domain_config = get_domain_config(domain_name)
-    if domain_config is None:
-        return jsonify({"error": "Domain is not registered for DDNS"}), 403
-    
-    # 2) Authentication with domain name and access code
-    if not is_authentic_request(domain_config=domain_config, access_code=access_code):
-        return jsonify({"error": "Unauthorized (incorrect access code)"}), 403
-    
-    # 3) Check if IPv6 address is valid
-    if not re.match(r'^[a-fA-F0-9:]+$', new_ipv6):
-        return jsonify({"error": "Invalid IPv6 address format"}), 400
-    
-    # Last ping time update
-    config["last_updated"][domain_name] = time.time()
-
-    # Check which parts are updated
-    ipv6_updated = is_ipv6_updated(domain_config=domain_config, new_ipv6=new_ipv6)
-    ssl_updated = is_ssl_certs_updated(domain_config=domain_config, ssl_private_key=ssl_private_key, ssl_certificate_crt=ssl_certificate_crt)
-
-    # If neither got updated
-    if (ipv6_updated is False) and (ssl_updated is False):
-        return jsonify({"message": "IPv6 and SSL are both same as requested values"})
-
-    # If IPv6 is updated
-    if ipv6_updated:
-        domain_config['previous_ipv6'] = domain_config['ipv6_address']
-        domain_config['ipv6_address'] = new_ipv6
-        domain_config['ipv6_updated_on'] = get_current_date_time()
-
-    # If SSL is updated
-    if ssl_updated:
-        # Updating the files of SSL keys
-        update_ssl_keys(domain_config, ssl_private_key, ssl_certificate_crt)
-        domain_config['ssl_updated_on'] = get_current_date_time()
-
-    # Generate final NGINX config
-    nginx_config = get_domain_nginx_config(domain_name=domain_config['domain_name'],
-                                            protocol=domain_config['protocol'],
-                                            ipv6_address=domain_config['ipv6_address'],
-                                            ssl_private_key_path=domain_config['ssl_private_key_path'],
-                                            ssl_certificate_crt_path=domain_config['ssl_certificate_crt_path'])
-    
-    # Change the nginx config file
-    echo_process = subprocess.Popen(["echo", nginx_config], stdout=subprocess.PIPE)
-    subprocess.run(["sudo", "tee", domain_config['config_file_path']], stdin=echo_process.stdout, check=True)
-    print(f"Created {domain_config['config_file_path']} with IPv6: {new_ipv6}")
-
-    # Reload Nginx with sudo
-    subprocess.run(["sudo", "systemctl", "reload", "nginx"], check=True)
-    print("Nginx reloaded successfully")
-
-    # Dumping the updated configuration
-    with open(CONFIG_FILE, "w") as file:
-        yaml.safe_dump(config, file, default_flow_style=False, sort_keys=False)
-
-    if ipv6_updated and ssl_updated:
-        return jsonify({"message": "Both IPv6 and SSL are updated"})
-    elif ipv6_updated:
-        return jsonify({"message": "Only IPv6 is updated"})
-    else:
-        return jsonify({"message": "Only SSL is updated"})
-
-
 def get_domain_nginx_config(domain_name, protocol, ipv6_address, ssl_private_key_path=None, ssl_certificate_crt_path=None):
     if ssl_private_key_path is None or ssl_certificate_crt_path is None:
         if os.path.exists(ssl_private_key_path) is False or os.path.exists(ssl_certificate_crt_path) is False:
@@ -210,16 +137,19 @@ def get_domain_nginx_config(domain_name, protocol, ipv6_address, ssl_private_key
         config = config.replace("$#@ssl_private_key_path", ssl_private_key_path)
         config = config.replace("$#@ssl_certificate_crt_path", ssl_certificate_crt_path)
         return config
+    
 
-
+### Creation and deletion of reverse proxies
 def create_reverse_proxies():
-    for entry in config.get("ddns_entries"):
-        domain_name = entry['domain_name']
-        protocol = entry['protocol']
-        ipv6 = entry['ipv6_address']
-        config_file_path = entry['config_file_path']
-        ssl_private_key_path = entry['ssl_private_key_path']
-        ssl_certificate_crt_path = entry['ssl_certificate_crt_path']
+    config = load_config()
+
+    for domain, domain_config in config.get("ddns_entries").items():
+        domain_name = domain_config['domain_name']
+        protocol = domain_config['protocol']
+        ipv6 = domain_config['ipv6_address']
+        config_file_path = domain_config['config_file_path']
+        ssl_private_key_path = domain_config['ssl_private_key_path']
+        ssl_certificate_crt_path = domain_config['ssl_certificate_crt_path']
 
         if ipv6 is None:
             ipv6 = "2001:db8::1"
@@ -263,7 +193,7 @@ def create_single_reverse_proxy(domain_name,
         return True
     except:
         return False
-
+    
 
 def delete_single_reverse_proxy(config_file_path):
     try:
@@ -278,39 +208,99 @@ def delete_single_reverse_proxy(config_file_path):
         return False
 
 
+### Flask app and end points
+app = Flask(__name__)
+
 app.secret_key = os.getenv("SECRET_KEY", secrets.token_hex(32))  # Secure secret key
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=15)  # Auto logout after 15 min
 
 # Rate limiter to prevent brute-force attacks
 limiter = Limiter(get_remote_address, app=app, default_limits=["5 per minute"])
 
-CONFIG_FILE = "config.yaml"
-AUTH_FILE = "auth.yaml"
 
+# End point for clients to update proxy config
+@app.route("/update_ipv6", methods=['POST'])
+def update_ipv6():
+    domain_name = request.json.get("domain_name")
+    access_code = request.json.get("access_code")
+    new_ipv6 = request.json.get("ipv6")
 
-def load_config():
-    if not os.path.exists(CONFIG_FILE):
-        return {"ddns_entries": []}
-    with open(CONFIG_FILE, "r") as file:
-        return yaml.safe_load(file) or {"ddns_entries": []}
+    ssl_private_key = None
+    ssl_certificate_crt = None
+    if "ssl_private_key" in request.json and "ssl_certificate_crt" in request.json:
+        ssl_private_key = request.json.get("ssl_private_key")
+        ssl_certificate_crt = request.json.get("ssl_certificate_crt")
 
+    # Load config into variable
+    current_config = load_config()
 
-def save_config(data):
+    # 1) Check if domain name exists in current sites
+    domain_config = get_domain_config(domain_name)
+    if domain_config is None:
+        return jsonify({"error": "Domain is not registered for DDNS"}), 403
+    
+    # 2) Authentication with domain name and access code
+    if not is_authentic_request(domain_config=domain_config, access_code=access_code):
+        return jsonify({"error": "Unauthorized (incorrect access code)"}), 403
+    
+    # 3) Check if IPv6 address is valid
+    if not re.match(r'^[a-fA-F0-9:]+$', new_ipv6):
+        return jsonify({"error": "Invalid IPv6 address format"}), 400
+    
+    # Last ping time update
+    domain_config["last_pinged_at"] = time.time()
+    # config["last_updated"][domain_name] = time.time()
+
+    # Check which parts are updated
+    ipv6_updated = is_ipv6_updated(domain_config=domain_config, new_ipv6=new_ipv6)
+    ssl_updated = is_ssl_certs_updated(domain_config=domain_config, ssl_private_key=ssl_private_key, ssl_certificate_crt=ssl_certificate_crt)
+
+    # If neither got updated
+    if (ipv6_updated is False) and (ssl_updated is False):
+        return jsonify({"message": "IPv6 and SSL are both same as requested values"})
+
+    # If IPv6 is updated
+    if ipv6_updated:
+        domain_config['previous_ipv6'] = domain_config['ipv6_address']
+        domain_config['ipv6_address'] = new_ipv6
+        domain_config['ipv6_updated_on'] = get_current_date_time()
+
+    # If SSL is updated
+    if ssl_updated:
+        # Updating the files of SSL keys
+        update_ssl_keys(domain_config, ssl_private_key, ssl_certificate_crt)
+        domain_config['ssl_updated_on'] = get_current_date_time()
+
+    # Generate final NGINX config
+    nginx_config = get_domain_nginx_config(domain_name=domain_config['domain_name'],
+                                            protocol=domain_config['protocol'],
+                                            ipv6_address=domain_config['ipv6_address'],
+                                            ssl_private_key_path=domain_config['ssl_private_key_path'],
+                                            ssl_certificate_crt_path=domain_config['ssl_certificate_crt_path'])
+    
+    # Change the nginx config file
+    echo_process = subprocess.Popen(["echo", nginx_config], stdout=subprocess.PIPE)
+    subprocess.run(["sudo", "tee", domain_config['config_file_path']], stdin=echo_process.stdout, check=True)
+    print(f"Created {domain_config['config_file_path']} with IPv6: {new_ipv6}")
+
+    # Reload Nginx with sudo
+    subprocess.run(["sudo", "systemctl", "reload", "nginx"], check=True)
+    print("Nginx reloaded successfully")
+
+    # Dumping the updated configuration
+    current_config[domain_name] = domain_config
     with open(CONFIG_FILE, "w") as file:
-        yaml.safe_dump(data, file)
+        yaml.safe_dump(current_config, file, default_flow_style=False, sort_keys=False)
+
+    if ipv6_updated and ssl_updated:
+        return jsonify({"message": "Both IPv6 and SSL are updated"})
+    elif ipv6_updated:
+        return jsonify({"message": "Only IPv6 is updated"})
+    else:
+        return jsonify({"message": "Only SSL is updated"})
 
 
-def load_auth():
-    if not os.path.exists(AUTH_FILE):
-        return {"users": {}}
-    with open(AUTH_FILE, "r") as file:
-        return yaml.safe_load(file)
-
-
-def check_password(stored_password, provided_password):
-    return bcrypt.checkpw(provided_password.encode("utf-8"), stored_password.encode("utf-8"))
-
-
+### End points for User Interface
 @app.route("/", methods=["GET", "POST"])
 @limiter.limit("5 per minute")
 def login():
@@ -335,14 +325,14 @@ def dashboard():
         return redirect(url_for("login"))
     config = load_config()
 
-    last_updated_times = config["last_updated"].copy()
-    for domain, prev_time in last_updated_times.items():
-        last_updated_times[domain] = round((time.time() - float(prev_time)) / 60) if prev_time else "NA"
-    
+    last_updated_times = {}
+    for domain, domain_config in config["ddns_entries"].items():
+        last_updated_times[domain] = round((time.time() - float(domain_config["last_pinged_at"])) / 60)
+
     return render_template("index.html", 
-                           entries=config["ddns_entries"], 
+                           entries=list(config["ddns_entries"].values()), 
                            username=session["username"], 
-                           nginx_template=NGINX_CONFIG_TEMPLATE,
+                           nginx_template=load_nginx_template(),
                            entry_keys=config["required_keys"],
                            last_updated=last_updated_times)
 
@@ -351,14 +341,15 @@ def dashboard():
 def logout():
     session.clear()
     return redirect(url_for("login"))
+    
 
-
+### End points for creation, deletion and updation of Reverse proxies from UI
 @app.post("/update_entity")
 def update_entity():
     if "username" not in session:
         return jsonify({"error": "Unauthorized"}), 401
     
-    index = int(request.form["index"])
+    # index = int(request.form["index"])
     domain_name = request.form["domain_name"]
     config_file_path = request.form["config_file_path"]
     protocol = request.form["protocol"]
@@ -366,11 +357,11 @@ def update_entity():
     access_code = request.form["access_code"]
     nginx_config = request.form["nginx_config"]
     
-    # config = load_config()
-    if index >= len(config["ddns_entries"]):
+    config = load_config()
+    if domain_name not in config["ddns_entries"]:
         return jsonify({"error": "Entity not found"}), 404
     
-    config["ddns_entries"][index] = {
+    new_domain_config = {
         "domain_name": domain_name,
         "config_file_path": config_file_path,
         "protocol": protocol,
@@ -384,12 +375,13 @@ def update_entity():
                                              config_file_path, 
                                              protocol, 
                                              ipv6_address, 
-                                             config["ddns_entries"][index]['ssl_private_key_path'],
-                                             config["ddns_entries"][index]['ssl_certificate_crt_path'])
+                                             config["ddns_entries"][domain_name]['ssl_private_key_path'],
+                                             config["ddns_entries"][domain_name]['ssl_certificate_crt_path'])
     if not is_success:
         return jsonify({"message": "Entity updation failed"})
     else:
-        config["last_updated"][domain_name] = time.time()
+        config["ddns_entries"][domain_name].update(new_domain_config)
+        config["ddns_entries"][domain_name]["last_pinged_at"] = time.time()
         save_config(config)    
         return jsonify({"message": "Entity updated successfully"})
 
@@ -406,8 +398,8 @@ def add_entity():
     access_code = request.form["access_code"]
     nginx_config = request.form["nginx_config"]
     
-    # config = load_config()
-    config["ddns_entries"].append({
+    config = load_config()
+    new_domain_config = {
         "domain_name": domain_name,
         "config_file_path": config_file_path,
         "protocol": protocol,
@@ -415,20 +407,24 @@ def add_entity():
         "access_code": access_code,
         "previous_ipv6": "0000:0000:0000:0000:0000:0000:0000:0000",
         "ipv6_updated_on": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
+        "ssl_updated_on": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
+        "last_pinged_at": 10000,
         "nginx_config": nginx_config,
         "ssl_private_key_path": f"/etc/nginx/ssl/{domain_name}/private.key",
         "ssl_certificate_crt_path": f"/etc/nginx/ssl/{domain_name}/certificate.crt"
-    })
+    }
 
     # Updating the nginx config for the site
     is_success = create_single_reverse_proxy(domain_name, 
                                             config_file_path, 
                                             protocol, 
-                                            ipv6_address)
+                                            ipv6_address,
+                                            ssl_private_key_path=new_domain_config["ssl_private_key_path"], 
+                                            ssl_certificate_crt_path=new_domain_config["ssl_certificate_crt_path"])
     if not is_success:
         return jsonify({"message": "Entity addition failed"})
     else:
-        update_last_updated_list()
+        config["ddns_entries"][domain_name] = new_domain_config
         save_config(config)    
         return jsonify({"message": "Entity added successfully"})
 
@@ -438,22 +434,23 @@ def delete_entity():
     if "username" not in session:
         return jsonify({"error": "Unauthorized"}), 401
     
-    index = int(request.form["index"])
-    # config = load_config()
+    # index = int(request.form["index"])
+    domain_name = request.form["domain_name"]
     
-    if index >= len(config["ddns_entries"]):
+    config = load_config()
+    if domain_name in config["ddns_entries"]:
         return jsonify({"error": "Entity not found"}), 404
     
-    is_success = delete_single_reverse_proxy(config["ddns_entries"][index]["config_file_path"])
+    is_success = delete_single_reverse_proxy(config["ddns_entries"][domain_name]["config_file_path"])
     if not is_success:
         return jsonify({"message": "Entity deletion failed"})
     else:
-        del config["ddns_entries"][index]
-        update_last_updated_list()
+        del config["ddns_entries"][domain_name]
         save_config(config)
         return jsonify({"message": "Entity deleted successfully"})
 
 
+### End points for NGINX default template modifications
 @app.post("/update_nginx_template")
 def update_nginx_template():
     global NGINX_CONFIG_TEMPLATE

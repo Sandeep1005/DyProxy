@@ -4,29 +4,31 @@ required_keys:
 - domain_name
 - ipv6_address
 - protocol
-last_updated:
-  test.bysandeep.site: 10000
-  minio.bysandeep.site: 10000
+- nginx_config
 ddns_entries:
-- access_code: your_secret_code
-  config_file_path: /etc/nginx/conf.d/test.bysandeep.site.conf
-  domain_name: test.bysandeep.site
-  ipv6_address: 2001:0db8:85a3:0000:0000:8a2e:0370:7334
-  protocol: http
-  previous_ipv6: 1234:1234:1234:1234:1234:1234:1234:1234
-  ipv6_updated_on: 19-03-2025 21:25:21
-  ssl_updated_on: 19-03-2025 21:25:21
-  nginx_config: default
-  ssl_private_key_path: /etc/nginx/ssl/test.bysandeep.site/private.key
-  ssl_certificate_crt_path: /etc/nginx/ssl/test.bysandeep.site/certificate.crt
-- access_code: your_secret_code
-  config_file_path: /etc/nginx/conf.d/minio.bysandeep.site.conf
-  domain_name: minio.bysandeep.site
-  ipv6_address: 2001:0db8:85a3:0000:0000:8a2e:0370:7334
-  protocol: http
-  previous_ipv6: 1234:1234:1234:1234:1234:1234:1234:1234
-  ipv6_updated_on: 19-03-2025 21:25:21
-  ssl_updated_on: 19-03-2025 21:25:21
-  nginx_config: default
-  ssl_private_key_path: /etc/nginx/ssl/test.bysandeep.site/private.key
-  ssl_certificate_crt_path: /etc/nginx/ssl/test.bysandeep.site/certificate.crt
+  test.bysandeep.site:
+    access_code: your_secret_code
+    config_file_path: /etc/nginx/conf.d/test.bysandeep.site.conf
+    domain_name: test.bysandeep.site
+    ipv6_address: 2001:0db8:85a3:0000:0000:8a2e:0370:7334
+    protocol: http
+    previous_ipv6: 1234:1234:1234:1234:1234:1234:1234:1234
+    ipv6_updated_on: 19-03-2025 21:25:21
+    ssl_updated_on: 19-03-2025 21:25:21
+    last_pinged_at: 10000
+    nginx_config: default
+    ssl_private_key_path: /etc/nginx/ssl/test.bysandeep.site/private.key
+    ssl_certificate_crt_path: /etc/nginx/ssl/test.bysandeep.site/certificate.crt
+  minio.bysandeep.site:
+    access_code: your_secret_code
+    config_file_path: /etc/nginx/conf.d/minio.bysandeep.site.conf
+    domain_name: minio.bysandeep.site
+    ipv6_address: 2001:0db8:85a3:0000:0000:8a2e:0370:7334
+    protocol: http
+    previous_ipv6: 1234:1234:1234:1234:1234:1234:1234:1234
+    ipv6_updated_on: 19-03-2025 21:25:21
+    ssl_updated_on: 19-03-2025 21:25:21
+    last_pinged_at: 10000
+    nginx_config: default
+    ssl_private_key_path: /etc/nginx/ssl/test.bysandeep.site/private.key
+    ssl_certificate_crt_path: /etc/nginx/ssl/test.bysandeep.site/certificate.crt
