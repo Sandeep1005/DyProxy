@@ -123,12 +123,17 @@ def get_current_date_time():
 
 def get_domain_nginx_config(domain_name, protocol, ipv6_address, ssl_private_key_path=None, ssl_certificate_crt_path=None):
     if ssl_private_key_path is None or ssl_certificate_crt_path is None:
-        if os.path.exists(ssl_private_key_path) is False or os.path.exists(ssl_certificate_crt_path) is False:
-            config = load_nginx_template()
-            config = config.replace("$#@domain_name", domain_name)
-            config = config.replace("$#@protocol", protocol)
-            config = config.replace("$#@ipv6_address", ipv6_address)
-            return config
+        config = load_nginx_template()
+        config = config.replace("$#@domain_name", domain_name)
+        config = config.replace("$#@protocol", protocol)
+        config = config.replace("$#@ipv6_address", ipv6_address)
+        return config
+    elif os.path.exists(ssl_private_key_path) is False or os.path.exists(ssl_certificate_crt_path) is False:
+        config = load_nginx_template()
+        config = config.replace("$#@domain_name", domain_name)
+        config = config.replace("$#@protocol", protocol)
+        config = config.replace("$#@ipv6_address", ipv6_address)
+        return config
     else:
         config = load_nginx_template(protocol='https')
         config = config.replace("$#@domain_name", domain_name)
