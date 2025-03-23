@@ -443,7 +443,7 @@ def delete_entity():
     domain_name = request.form["domain_name"]
     
     config = load_config()
-    if domain_name in config["ddns_entries"]:
+    if domain_name not in config["ddns_entries"]:
         return jsonify({"error": "Entity not found"}), 404
     
     is_success = delete_single_reverse_proxy(config["ddns_entries"][domain_name]["config_file_path"])
