@@ -88,7 +88,7 @@ def is_ssl_certs_updated(domain_config, ssl_private_key, ssl_certificate_crt):
         
         if ssl_private_key is None or ssl_certificate_crt is None:
             return True
-        elif prev_ssl_certificate_crt == ssl_certificate_crt and prev_ssl_private_key == ssl_private_key:
+        elif prev_ssl_certificate_crt.strip() == ssl_certificate_crt.strip() and prev_ssl_private_key.strip() == ssl_private_key.strip():
             return False
         else:
             return True
