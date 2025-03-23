@@ -249,7 +249,6 @@ def update_ipv6():
     
     # Last ping time update
     domain_config["last_pinged_at"] = time.time()
-    # config["last_updated"][domain_name] = time.time()
 
     # Check which parts are updated
     ipv6_updated = is_ipv6_updated(domain_config=domain_config, new_ipv6=new_ipv6)
@@ -257,6 +256,9 @@ def update_ipv6():
 
     # If neither got updated
     if (ipv6_updated is False) and (ssl_updated is False):
+        # Dumping the updated configuration
+        current_config["ddns_entries"][domain_name] = domain_config
+        save_config(current_config)
         return jsonify({"message": "IPv6 and SSL are both same as requested values"})
 
     # If IPv6 is updated
@@ -288,9 +290,8 @@ def update_ipv6():
     print("Nginx reloaded successfully")
 
     # Dumping the updated configuration
-    current_config[domain_name] = domain_config
-    with open(CONFIG_FILE, "w") as file:
-        yaml.safe_dump(current_config, file, default_flow_style=False, sort_keys=False)
+    current_config["ddns_entries"][domain_name] = domain_config
+    save_config(current_config)
 
     if ipv6_updated and ssl_updated:
         return jsonify({"message": "Both IPv6 and SSL are updated"})
