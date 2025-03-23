@@ -341,21 +341,23 @@
         async function deleteEntity(domain_name) {
             if (!confirm("Are you sure you want to delete this entry?")) return;
 
-            let data = new FormData()
-            data.append("domain_name", domain_name)
-            fetch("/delete_entity", {
-                method: "POST",
-                headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                body: data
-            }).then(response => response.json())
-              .then(data => {
-                  if (data.message) {
-                      alert(data.message);
-                      location.reload();
-                  } else {
-                      alert("Error deleting entity");
-                  }
-              });
+            let data = new FormData();
+            data.append("domain_name", domain_name);
+
+            try {
+                let response = await fetch("/delete_entity", {
+                    method: "POST",
+                    body: data  // No need to set headers
+                });
+
+                if (!response.ok) throw new Error("Failed to delete entity");
+
+                let result = await response.json();
+                alert(result.message || "Error deleting entity");
+                location.reload();
+            } catch (error) {
+                alert("Error: " + error.message);
+            }
         }
 
         function showTab(tabId) {
