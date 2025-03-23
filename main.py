@@ -440,7 +440,6 @@ def delete_entity():
     if "username" not in session:
         return jsonify({"error": "Unauthorized"}), 401
     
-    # index = int(request.form["index"])
     domain_name = request.form["domain_name"]
     
     config = load_config()
