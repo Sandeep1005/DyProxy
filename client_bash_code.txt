@@ -1,14 +1,14 @@
 #!/bin/bash
 
 # Define the Nginx configuration file
-CONFIG_FILE="/path/to/nginx.conf"
+CONFIG_FILE="/etc/nginx/sites-available/cloud.bysandeep.site"
 
 # Define variables
 CHECK_IP_SERVICE="http://ipv6check.bysandeep.site/"
 DDNS_UPDATE_URL="http://ddnsdiy.bysandeep.site/update_ipv6"
 ACCESS_CODE="your_secret_code"
 LOG_FILE="$HOME/ddns_update.log"
-DOMAIN_NAME="test.bysandeep.site"
+DOMAIN_NAME="cloud.bysandeep.site"
 
 # Get the current public IPv6 address
 IPV6_ADDR=$(curl -6 -s $CHECK_IP_SERVICE)
@@ -20,19 +20,19 @@ if [[ -z "$IPV6_ADDR" ]]; then
 fi
 
 # Extract ssl_certificate and ssl_certificate_key paths
-SSL_CERT=$(grep -oP 'ssl_certificate\s+\K[^;]+' "$CONFIG_FILE")
-SSL_KEY=$(grep -oP 'ssl_certificate_key\s+\K[^;]+' "$CONFIG_FILE")
+SSL_CERT=$(cat "$CONFIG_FILE" | grep -oP 'ssl_certificate\s+\K[^;]+')
+SSL_KEY=$(cat "$CONFIG_FILE" |grep -oP 'ssl_certificate_key\s+\K[^;]+')
 
 # Read file contents if paths exist, otherwise set empty
 SSL_CERT_CONTENT=""
 SSL_KEY_CONTENT=""
 
 if [[ -n "$SSL_CERT" && -f "$SSL_CERT" ]]; then
-    SSL_CERT_CONTENT=$(cat "$SSL_CERT")
+    SSL_CERT_CONTENT=$(sudo cat "$SSL_CERT")
 fi
 
 if [[ -n "$SSL_KEY" && -f "$SSL_KEY" ]]; then
-    SSL_KEY_CONTENT=$(cat "$SSL_KEY")
+    SSL_KEY_CONTENT=$(sudo cat "$SSL_KEY")
 fi
 
 # Construct JSON payload using jq
@@ -41,16 +41,16 @@ if [[ -n "$SSL_CERT_CONTENT" && -n "$SSL_KEY_CONTENT" ]]; then
     DATA=$(jq -n \
         --arg access_code "$ACCESS_CODE" \
         --arg ipv6 "$IPV6_ADDR" \
-        --arg domain_name "$DOMAIN_NAME1" \
+        --arg domain_name "$DOMAIN_NAME" \
         --arg ssl_cert "$SSL_CERT_CONTENT" \
         --arg ssl_key "$SSL_KEY_CONTENT" \
-        '{access_code: $access_code, ipv6: $ipv6, domain_name: $domain_name, ssl_certificate: $ssl_cert, ssl_certificate_key: $ssl_key}')
+        '{access_code: $access_code, ipv6: $ipv6, domain_name: $domain_name, ssl_certificate_crt: $ssl_cert, ssl_private_key: $ssl_key}')
 else
     echo "No SSL information is found in site config"
     DATA=$(jq -n \
         --arg access_code "$ACCESS_CODE" \
         --arg ipv6 "$IPV6_ADDR" \
-        --arg domain_name "$DOMAIN_NAME1" \
+        --arg domain_name "$DOMAIN_NAME" \
         '{access_code: $access_code, ipv6: $ipv6, domain_name: $domain_name}')
 fi
 
