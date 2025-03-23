@@ -12,7 +12,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
 
-CONFIG_FILE = "./config_new.yaml"
+CONFIG_FILE = "./config.yaml"
 
 NGINX_TEMPLATE_FILE_HTTP = "./default_nginx_template_http.txt"
 NGINX_TEMPLATE_FILE_HTTPS = "./default_nginx_template_https.txt"
