@@ -83,8 +83,7 @@ def save_custom_nginx_config(domain_name, nginx_config):
             os.makedirs(dirname)
 
         # Write the file
-        with open(custom_nginx_config_path, 'w') as file:
-            file.write(nginx_config)
+        subprocess.run(["bash", "-c", f"sudo echo '{nginx_config}' > {custom_nginx_config_path}"], check=True)
 
         return True
     except Exception as e:
