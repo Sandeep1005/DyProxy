@@ -80,7 +80,7 @@ def save_custom_nginx_config(domain_name, nginx_config):
         if not os.path.exists(custom_nginx_config_path):
             # Create the necessary directory
             dirname = os.path.dirname(custom_nginx_config_path)
-            os.makedirs(dirname)
+            os.makedirs(dirname, exist_ok=True)
 
         # Write the file
         subprocess.run(["bash", "-c", f"sudo echo '{nginx_config}' > {custom_nginx_config_path}"], check=True)
