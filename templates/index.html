@@ -450,15 +450,13 @@
 
         async function updateEntity(index) {
             let formData = new FormData();
-            formData.append("index", index);
             formData.append("domain_name", document.getElementById(`input${index}domain_name`).value);
             formData.append("config_file_path", document.getElementById(`input${index}config_file_path`).value);
             formData.append("protocol", document.getElementById(`input${index}protocol`).value);
             formData.append("ipv6_address", document.getElementById(`input${index}ipv6_address`).value);
             formData.append("access_code", document.getElementById(`input${index}access_code`).value);
-            // formData.append("nginx_config", document.getElementById(`input${index}nginx_config`).value);
-            formData.append("nginx_config", "default");
-
+            formData.append("nginx_config", document.getElementById(`input${index}nginxToggleSwitch`).checked ? "custom" : "default");
+            
             let response = await fetch("/update_entity", { method: "POST", body: formData });
             let result = await response.json();
             alert(result.message);
