@@ -121,7 +121,7 @@ def is_protocol_updated(domain_config, ssl_private_key, ssl_certificate_crt):
     if ssl_private_key is None or ssl_certificate_crt is None:
         target_protocol = 'http'
     else:
-        target_protocol = 'http'
+        target_protocol = 'https'
     
     if domain_config['protocol'] == target_protocol:
         return False
