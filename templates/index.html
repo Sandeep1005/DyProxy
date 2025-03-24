@@ -400,7 +400,7 @@
             let response = await fetch("/get_custom_nginx_template", { method: "POST", body: formData });
             let result = await response.json();
 
-            getElementById(`input${index}nginxConfigTextarea`).value = result.nginx_template
+            document.getElementById(`input${index}nginxConfigTextarea`).value = result.nginx_template
         }
         
         function closePopup(index) {
