@@ -116,6 +116,32 @@ def update_ssl_keys(domain_config, ssl_private_key, ssl_certificate_crt):
 
         domain_config['protocol'] = 'https'
 
+
+def is_protocol_updated(domain_config, ssl_private_key, ssl_certificate_crt):
+    if ssl_private_key is None or ssl_certificate_crt is None:
+        target_protocol = 'http'
+    else:
+        if os.path.exists(ssl_private_key) and os.path.exists(ssl_certificate_crt):
+            target_protocol = 'https'
+        else:
+            target_protocol = 'http'
+    
+    if domain_config['protocol'] == target_protocol:
+        return False
+    else:
+        return True
+    
+
+def get_protocol(ssl_private_key, ssl_certificate_crt):
+    if ssl_private_key is None or ssl_certificate_crt is None:
+        target_protocol = 'http'
+    else:
+        if os.path.exists(ssl_private_key) and os.path.exists(ssl_certificate_crt):
+            target_protocol = 'https'
+        else:
+            target_protocol = 'http'
+    return target_protocol
+
     
 def get_current_date_time():
     return time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
@@ -258,9 +284,10 @@ def update_ipv6():
     # Check which parts are updated
     ipv6_updated = is_ipv6_updated(domain_config=domain_config, new_ipv6=new_ipv6)
     ssl_updated = is_ssl_certs_updated(domain_config=domain_config, ssl_private_key=ssl_private_key, ssl_certificate_crt=ssl_certificate_crt)
+    protocol_updated = is_protocol_updated(domain_config=domain_config, ssl_private_key=ssl_private_key, ssl_certificate_crt=ssl_certificate_crt)
 
     # If neither got updated
-    if (ipv6_updated is False) and (ssl_updated is False):
+    if (ipv6_updated is False) and (ssl_updated is False) and (protocol_updated is False):
         # Dumping the updated configuration
         current_config["ddns_entries"][domain_name] = domain_config
         save_config(current_config)
@@ -277,12 +304,10 @@ def update_ipv6():
         # Updating the files of SSL keys
         update_ssl_keys(domain_config, ssl_private_key, ssl_certificate_crt)
         domain_config['ssl_updated_on'] = get_current_date_time()
-
-        # If SSL is updated, also update the protocol to connect to original server
-        if ssl_private_key is None or ssl_certificate_crt is None:
-            domain_config['protocol'] = 'http'
-        else:
-            domain_config['protocol'] = 'https'
+    
+    # If protocol is updated
+    if protocol_updated:
+        domain_config['protocol'] = get_protocol(ssl_certificate_crt=ssl_certificate_crt, ssl_private_key=ssl_private_key)
 
     # Generate final NGINX config
     nginx_config = get_domain_nginx_config(domain_name=domain_config['domain_name'],
@@ -304,12 +329,19 @@ def update_ipv6():
     current_config["ddns_entries"][domain_name] = domain_config
     save_config(current_config)
 
-    if ipv6_updated and ssl_updated:
-        return jsonify({"message": "Both IPv6 and SSL are updated"})
-    elif ipv6_updated:
-        return jsonify({"message": "Only IPv6 is updated"})
+    return_message = ""
+    if ipv6_updated:
+        return_message += " IPv6 "
+    if ssl_updated:
+        return_message += " SSL "
+    if protocol_updated:
+        return_message += " protocol "
+
+    if len(return_message) == 0:
+        return_message = "All values are same as requested"
     else:
-        return jsonify({"message": "Only SSL is updated"})
+        return_message += "updated"
+    return jsonify({"message": return_message})
 
 
 ### End points for User Interface
