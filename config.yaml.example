@@ -19,6 +19,7 @@ ddns_entries:
     nginx_config: default
     ssl_private_key_path: /etc/nginx/ssl/test.bysandeep.site/private.key
     ssl_certificate_crt_path: /etc/nginx/ssl/test.bysandeep.site/certificate.crt
+    custom_nginx_config_path: nginx_configs/test.bysandeep.site.txt
   minio.bysandeep.site:
     access_code: your_secret_code
     config_file_path: /etc/nginx/conf.d/minio.bysandeep.site.conf
@@ -32,3 +33,4 @@ ddns_entries:
     nginx_config: default
     ssl_private_key_path: /etc/nginx/ssl/test.bysandeep.site/private.key
     ssl_certificate_crt_path: /etc/nginx/ssl/test.bysandeep.site/certificate.crt
+    custom_nginx_config_path: nginx_configs/minio.bysandeep.site.txt
