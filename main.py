@@ -278,6 +278,12 @@ def update_ipv6():
         update_ssl_keys(domain_config, ssl_private_key, ssl_certificate_crt)
         domain_config['ssl_updated_on'] = get_current_date_time()
 
+        # If SSL is updated, also update the protocol to connect to original server
+        if ssl_private_key is None or ssl_certificate_crt is None:
+            domain_config['protocol'] = 'http'
+        else:
+            domain_config['protocol'] = 'https'
+
     # Generate final NGINX config
     nginx_config = get_domain_nginx_config(domain_name=domain_config['domain_name'],
                                             protocol=domain_config['protocol'],
