@@ -121,10 +121,7 @@ def is_protocol_updated(domain_config, ssl_private_key, ssl_certificate_crt):
     if ssl_private_key is None or ssl_certificate_crt is None:
         target_protocol = 'http'
     else:
-        if os.path.exists(ssl_private_key) and os.path.exists(ssl_certificate_crt):
-            target_protocol = 'https'
-        else:
-            target_protocol = 'http'
+        target_protocol = 'http'
     
     if domain_config['protocol'] == target_protocol:
         return False
@@ -291,7 +288,7 @@ def update_ipv6():
         # Dumping the updated configuration
         current_config["ddns_entries"][domain_name] = domain_config
         save_config(current_config)
-        return jsonify({"message": "IPv6 and SSL are both same as requested values"})
+        return jsonify({"message": "IPv6 SSL and protocol are all same as requested values"})
 
     # If IPv6 is updated
     if ipv6_updated:
