@@ -133,10 +133,7 @@ def get_protocol(ssl_private_key, ssl_certificate_crt):
     if ssl_private_key is None or ssl_certificate_crt is None:
         target_protocol = 'http'
     else:
-        if os.path.exists(ssl_private_key) and os.path.exists(ssl_certificate_crt):
-            target_protocol = 'https'
-        else:
-            target_protocol = 'http'
+        target_protocol = 'https'
     return target_protocol
 
     
