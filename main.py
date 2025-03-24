@@ -73,6 +73,7 @@ def save_custom_nginx_config(domain_name, nginx_config):
     try:
         config = load_config()
         if domain_name not in config["ddns_entries"]:
+            subprocess.run(["echo", "'Domain not found in config'"], check=True)
             raise Exception(f"Domain with the name {domain_name} not present")
         
         domain_config = config["ddns_entries"][domain_name]
@@ -83,6 +84,7 @@ def save_custom_nginx_config(domain_name, nginx_config):
             os.makedirs(dirname)
 
         # Write the file
+        subprocess.run(["echo", "'saving the file'"], check=True)
         subprocess.run(["bash", "-c", f"sudo echo '{nginx_config}' > {custom_nginx_config_path}"], check=True)
 
         return True
