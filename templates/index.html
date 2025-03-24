@@ -394,7 +394,7 @@
             document.getElementById(`${index}popupOverlay`).style.display = "block";
             document.getElementById(`${index}nginxPopup`).style.display = "flex";
 
-            let formData = FormData()
+            let formData = new FormData()
             formData.append("domain_name", domain_name)
 
             let response = await fetch("/get_custom_nginx_template", { method: "POST", body: formData });
@@ -408,10 +408,10 @@
             document.getElementById(`${index}nginxPopup`).style.display = "none";
         }
         
-        function saveNginxConfig(index, domain_name) {
+        async function saveNginxConfig(index, domain_name) {
             let configText = document.getElementById(`input${index}nginxConfigTextarea`).value;
             
-            let formData = FormData()
+            let formData = new FormData()
             formData.append("domain_name", domain_name)
             formData.append("nginx_template", configText)
 
