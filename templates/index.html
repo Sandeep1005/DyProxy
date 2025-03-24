@@ -181,6 +181,104 @@
             display: flex;
             flex-direction: column;
         }
+
+        .switch-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 34px;
+            height: 20px;
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: 0.4s;
+            border-radius: 20px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 14px;
+            width: 14px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: #4CAF50;
+        }
+        input:checked + .slider:before {
+            transform: translateX(14px);
+        }
+        .config-buttons.button {
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .config-buttons.button:hover {
+            background-color: #0056b3;
+        }
+        .popup-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 999;
+        }
+        .popup {
+            display: none;
+            flex-direction: column;
+            justify-content: space-between;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            width: 600px;
+            z-index: 1000;
+        }
+        .popup textarea {
+            width: calc(100% - 20px);
+            height: 300px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 14px;
+            resize: none;
+            display: block;
+            margin: 0 auto;
+            box-sizing: border-box;
+        }
+        .popup-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            padding: 0 20px 0 20px;
+        }
     </style>
 </head>
 <body>
@@ -206,9 +304,10 @@
                     <div class="hidden-content">
 
                         <div class="domain-info-block">
-                            <label>Last updated {{ last_updated[entry["domain_name"]] }} mins ago.</label>
+                            <label>SSL Updated on: {{ entry["ssl_updated_on"] }}</label>
                             <label>IPv6 Updated on: {{ entry["ipv6_updated_on"] }}</label>
                             <label>Previous IPv6: {{ entry["previous_ipv6"] }}</label>
+                            <label>NGINS Config file path: {{ entry['config_file_path'] }}</label>
                         </div>
                         
                         <div class="input-group">
@@ -227,14 +326,23 @@
                             <label for="input{{ loop.index }}access_code">Access Code:</label>
                             <input type="text" id="input{{ loop.index }}access_code" value='{{ entry["access_code"] }}'>
                         </div>
-                        <div class="input-group">
-                            <label for="input{{ loop.index }}config_file_path">Config file path:</label>
-                            <input type="text" id="input{{ loop.index }}config_file_path" value="{{ entry['config_file_path'] }}">
+
+                        <div class="switch-container">
+                            <label>Use custom nginx configuration</label>
+                            <label class="switch">
+                                <input type="checkbox" id="input{{ loop.index }}nginxToggleSwitch" onchange="toggleNginxConfig()">
+                                <span class="slider"></span>
+                            </label>
+                            <button onclick="openPopup({{ loop.index }})">Edit Custom Nginx Config</button>
                         </div>
-                        <div class="input-group">
-                            <label>NGINX configuration:</label>
-                            <input type="radio" name="nginx_config" value="default" {% if entry['nginx_config'] == "default" %}checked{% endif %}> Default
-                            <input type="radio" name="nginx_config" value="custom" {% if entry['nginx_config'] == "custom" %}checked{% endif %}> Custom
+                        
+                        <div id="{{ loop.index }}popupOverlay" class="popup-overlay" onclick="closePopup({{ loop.index }})"></div>
+                        <div id="{{ loop.index }}nginxPopup" class="popup">
+                            <textarea id="input{{ loop.index }}nginxConfigTextarea" placeholder="Enter custom Nginx config..."></textarea>
+                            <div class="popup-buttons">
+                                <button class="config-buttons" onclick="saveNginxConfig({{ loop.index }})">Save</button>
+                                <button class="config-buttons" onclick="closePopup({{ loop.index }})">Close</button>
+                            </div>
                         </div>
 
                         <div class="button-group">
@@ -282,6 +390,27 @@
     </div>
 
     <script>
+        function openPopup(index) {
+            document.getElementById(`${index}popupOverlay`).style.display = "block";
+            document.getElementById(`${index}nginxPopup`).style.display = "flex";
+        }
+        
+        function closePopup(index) {
+            document.getElementById(`${index}popupOverlay`).style.display = "none";
+            document.getElementById(`${index}nginxPopup`).style.display = "none";
+        }
+        
+        function saveNginxConfig(index) {
+            let configText = document.getElementById(`input${index}nginxConfigTextarea`).value;
+            console.log("Saving Nginx Config:", configText);
+            closePopup(index);
+        }
+        
+        function toggleNginxConfig(index) {
+            let isChecked = document.getElementById(`input${index}nginxToggleSwitch`).checked;
+            console.log("Custom Nginx Config Enabled:", isChecked);
+        }
+
         function toggleExpand(panelId) {
             const expandable = document.getElementById(panelId);
             const content = expandable.querySelector(".hidden-content");
