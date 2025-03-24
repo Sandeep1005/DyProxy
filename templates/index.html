@@ -390,9 +390,17 @@
     </div>
 
     <script>
-        function openPopup(index) {
+        async function openPopup(index) {
             document.getElementById(`${index}popupOverlay`).style.display = "block";
             document.getElementById(`${index}nginxPopup`).style.display = "flex";
+
+            let formData = FormData()
+            formData.append("domain_name", '{{ entries[index]["domain_name"] }}')
+
+            let response = await fetch("/get_custom_nginx_template", { method: "POST", body: formData });
+            let result = await response.json();
+
+            getElementById(`input${index}nginxConfigTextarea`).value = result.nginx_template
         }
         
         function closePopup(index) {
@@ -402,7 +410,15 @@
         
         function saveNginxConfig(index) {
             let configText = document.getElementById(`input${index}nginxConfigTextarea`).value;
-            console.log("Saving Nginx Config:", configText);
+            
+            let formData = FormData()
+            formData.append("domain_name", '{{ entries[index]["domain_name"] }}')
+            formData.append("nginx_template", configText)
+
+            let response = await fetch("/update_custom_nginx_template", { method: "POST", body: formData });
+            let result = await response.json();
+            alert(result.message)
+
             closePopup(index);
         }
         

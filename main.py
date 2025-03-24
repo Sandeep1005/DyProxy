@@ -39,7 +39,7 @@ def get_domain_config(domain):
         return None
     
 
-def load_nginx_template(protocol='http'):
+def load_default_nginx_template(protocol='http'):
     if protocol == 'http':
         if os.path.exists(NGINX_TEMPLATE_FILE_HTTP):
             with open(NGINX_TEMPLATE_FILE_HTTP, "r") as file:
@@ -52,6 +52,45 @@ def load_nginx_template(protocol='http'):
                 return file.read()
         return ""
     
+
+def get_custom_nginx_config(domain_name):
+    config = load_config()
+    if domain_name not in config["ddns_entries"]:
+        raise Exception(f"Domain with the name {domain_name} not present")
+    
+    domain_config = config["ddns_entries"][domain_name]
+    custom_nginx_config_path = domain_config["custom_nginx_config_path"]
+    if os.path.exists(custom_nginx_config_path):
+        with open(custom_nginx_config_path, 'r') as file:
+            custom_nginx_config = file.read()
+        return custom_nginx_config
+    else:
+        # Returning default config 
+        return load_default_nginx_template(protocol=domain_config["protocol"])
+    
+
+def save_custom_nginx_config(domain_name, nginx_config):
+    try:
+        config = load_config()
+        if domain_name not in config["ddns_entries"]:
+            raise Exception(f"Domain with the name {domain_name} not present")
+        
+        domain_config = config["ddns_entries"][domain_name]
+        custom_nginx_config_path = domain_config["custom_nginx_config_path"]
+        if not os.path.exists(custom_nginx_config_path):
+            # Create the necessary directory
+            dirname = os.path.dirname(custom_nginx_config_path)
+            os.makedirs(dirname)
+
+        # Write the file
+        with open(custom_nginx_config_path, 'w') as file:
+            file.write(nginx_config)
+
+        return True
+    except Exception as e:
+        print(f"Exception in saving custom config: {e}")
+        return False
+
 
 def load_auth():
     if not os.path.exists(AUTH_FILE):
@@ -141,21 +180,35 @@ def get_current_date_time():
     return time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
 
 
-def get_domain_nginx_config(domain_name, protocol, ipv6_address, ssl_private_key_path=None, ssl_certificate_crt_path=None):
+def get_domain_nginx_config(domain_name, 
+                            protocol, 
+                            ipv6_address, 
+                            ssl_private_key_path=None, 
+                            ssl_certificate_crt_path=None, 
+                            nginx_config='default'):
     if ssl_private_key_path is None or ssl_certificate_crt_path is None:
-        config = load_nginx_template()
+        if nginx_config == 'default':
+            config = load_default_nginx_template()
+        else:
+            config = get_custom_nginx_config(domain_name=domain_name)
         config = config.replace("$#@domain_name", domain_name)
         config = config.replace("$#@protocol", protocol)
         config = config.replace("$#@ipv6_address", ipv6_address)
         return config
     elif os.path.exists(ssl_private_key_path) is False or os.path.exists(ssl_certificate_crt_path) is False:
-        config = load_nginx_template()
+        if nginx_config == 'default':
+            config = load_default_nginx_template()
+        else:
+            config = get_custom_nginx_config(domain_name=domain_name)
         config = config.replace("$#@domain_name", domain_name)
         config = config.replace("$#@protocol", protocol)
         config = config.replace("$#@ipv6_address", ipv6_address)
         return config
     else:
-        config = load_nginx_template(protocol='https')
+        if nginx_config == 'default':
+            config = load_default_nginx_template(protocol='https')
+        else:
+            config = get_custom_nginx_config(domain_name=domain_name)
         config = config.replace("$#@domain_name", domain_name)
         config = config.replace("$#@protocol", protocol)
         config = config.replace("$#@ipv6_address", ipv6_address)
@@ -183,7 +236,8 @@ def create_reverse_proxies():
                                                protocol=protocol,
                                                ipv6_address=ipv6,
                                                ssl_private_key_path=ssl_private_key_path,
-                                               ssl_certificate_crt_path=ssl_certificate_crt_path)
+                                               ssl_certificate_crt_path=ssl_certificate_crt_path,
+                                               nginx_config=domain_config["nginx_config"])
 
         echo_process = subprocess.Popen(["echo", nginx_config], stdout=subprocess.PIPE)
         subprocess.run(["sudo", "tee", config_file_path], stdin=echo_process.stdout, check=True)
@@ -199,13 +253,15 @@ def create_single_reverse_proxy(domain_name,
                                 protocol, 
                                 ipv6_address, 
                                 ssl_private_key_path, 
-                                ssl_certificate_crt_path):
+                                ssl_certificate_crt_path,
+                                nginx_config="default"):
     try:
         nginx_config = get_domain_nginx_config(domain_name=domain_name,
                                                 protocol=protocol,
                                                 ipv6_address=ipv6_address,
                                                 ssl_private_key_path=ssl_private_key_path,
-                                                ssl_certificate_crt_path=ssl_certificate_crt_path)
+                                                ssl_certificate_crt_path=ssl_certificate_crt_path,
+                                                nginx_config=nginx_config)
         
         echo_process = subprocess.Popen(["echo", nginx_config], stdout=subprocess.PIPE)
         subprocess.run(["sudo", "tee", config_file_path], stdin=echo_process.stdout, check=True)
@@ -308,7 +364,8 @@ def update_ipv6():
                                             protocol=domain_config['protocol'],
                                             ipv6_address=domain_config['ipv6_address'],
                                             ssl_private_key_path=domain_config['ssl_private_key_path'],
-                                            ssl_certificate_crt_path=domain_config['ssl_certificate_crt_path'])
+                                            ssl_certificate_crt_path=domain_config['ssl_certificate_crt_path'],
+                                            nginx_config=domain_config["nginx_config"])
     
     # Change the nginx config file
     echo_process = subprocess.Popen(["echo", nginx_config], stdout=subprocess.PIPE)
@@ -370,7 +427,7 @@ def dashboard():
     return render_template("index.html", 
                            entries=list(config["ddns_entries"].values()), 
                            username=session["username"], 
-                           nginx_template=load_nginx_template(),
+                           nginx_template=load_default_nginx_template(),
                            entry_keys=config["required_keys"],
                            last_updated=last_updated_times)
 
@@ -414,7 +471,8 @@ def update_entity():
                                              protocol, 
                                              ipv6_address, 
                                              config["ddns_entries"][domain_name]['ssl_private_key_path'],
-                                             config["ddns_entries"][domain_name]['ssl_certificate_crt_path'])
+                                             config["ddns_entries"][domain_name]['ssl_certificate_crt_path'],
+                                             nginx_config=new_domain_config["nginx_config"])
     if not is_success:
         return jsonify({"message": "Entity updation failed"})
     else:
@@ -458,7 +516,8 @@ def add_entity():
                                             protocol, 
                                             ipv6_address,
                                             ssl_private_key_path=new_domain_config["ssl_private_key_path"], 
-                                            ssl_certificate_crt_path=new_domain_config["ssl_certificate_crt_path"])
+                                            ssl_certificate_crt_path=new_domain_config["ssl_certificate_crt_path"],
+                                            nginx_config=new_domain_config["nginx_config"])
     if not is_success:
         return jsonify({"message": "Entity addition failed"})
     else:
@@ -488,29 +547,43 @@ def delete_entity():
 
 
 ### End points for NGINX default template modifications
-@app.post("/update_nginx_template")
+@app.post("/update_custom_nginx_template")
 def update_nginx_template():
     global NGINX_CONFIG_TEMPLATE
     if "username" not in session:
         return jsonify({"error": "Unauthorized"}), 401
 
-    NGINX_CONFIG_TEMPLATE = request.form["template"]
-    return jsonify({"message": "Nginx template updated successfully"})
+    nginx_template = request.form["nginx_template"]
+    domain_name = request.form["domain_name"]
+    is_updated = save_custom_nginx_config(domain_name=domain_name, nginx_config=nginx_template)
+    if is_updated:
+        return jsonify({"message": "Nginx template updated successfully"})
+    else:
+        return jsonify({"message": "Error occurred in template updation"})
 
 
-@app.post("/reset_nginx_template")
+@app.post("/get_default_nginx_template")
 def reset_nginx_template():
-    global NGINX_CONFIG_TEMPLATE
     if "username" not in session:
         return jsonify({"error": "Unauthorized"}), 401
+    
+    domain_name = request.form["domain_name"]
+    domain_config = get_domain_config(domain=domain_name)
 
-    NGINX_CONFIG_TEMPLATE = load_nginx_template()
-    return jsonify({"message": "Nginx template reset to default", "template": NGINX_CONFIG_TEMPLATE})
+    nginx_template = load_default_nginx_template(domain_config["protocol"])
+    return jsonify({"nginx_template": nginx_template})
 
 
-@app.route('/get_nginx_template', methods=['GET'])
+@app.post('/get_custom_nginx_template')
 def get_nginx_template():
     if "username" not in session:
         return jsonify({"error": "Unauthorized"}), 401  # Return 401 if not logged in
 
-    return jsonify({"template": NGINX_CONFIG_TEMPLATE})
+    domain_name = request.form["domain_name"]
+    domain_config = get_domain_config(domain=domain_name)
+    if domain_config["nginx_config"] == 'default':
+        nginx_template = load_default_nginx_template(domain_config["protocol"])
+    else:
+        nginx_template = get_custom_nginx_config(domain_name=domain_name)
+
+    return jsonify({"nginx_template": nginx_template})
