@@ -445,7 +445,6 @@ def update_entity():
         return jsonify({"error": "Unauthorized"}), 401
     
     domain_name = request.form["domain_name"]
-    config_file_path = request.form["config_file_path"]
     protocol = request.form["protocol"]
     ipv6_address = request.form.get("ipv6_address", None)
     access_code = request.form["access_code"]
@@ -457,7 +456,6 @@ def update_entity():
     
     new_domain_config = {
         "domain_name": domain_name,
-        "config_file_path": config_file_path,
         "protocol": protocol,
         "ipv6_address": ipv6_address,
         "access_code": access_code,
@@ -466,12 +464,12 @@ def update_entity():
 
     # Updating the nginx config for the site
     is_success = create_single_reverse_proxy(domain_name, 
-                                             config_file_path, 
+                                             config["ddns_entries"][domain_name]["config_file_path"], 
                                              protocol, 
                                              ipv6_address, 
                                              config["ddns_entries"][domain_name]['ssl_private_key_path'],
                                              config["ddns_entries"][domain_name]['ssl_certificate_crt_path'],
-                                             nginx_config=new_domain_config["nginx_config"])
+                                             nginx_config=nginx_config)
     if not is_success:
         return jsonify({"message": "Entity updation failed"})
     else:

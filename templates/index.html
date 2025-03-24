@@ -333,14 +333,14 @@
                                 <input type="checkbox" id="input{{ loop.index }}nginxToggleSwitch" onchange="toggleNginxConfig()">
                                 <span class="slider"></span>
                             </label>
-                            <button onclick="openPopup({{ loop.index }})">Edit Custom Nginx Config</button>
+                            <button onclick="openPopup({{ loop.index }}, '{{ entries[index]['domain_name'] }}')">Edit Custom Nginx Config</button>
                         </div>
                         
                         <div id="{{ loop.index }}popupOverlay" class="popup-overlay" onclick="closePopup({{ loop.index }})"></div>
                         <div id="{{ loop.index }}nginxPopup" class="popup">
                             <textarea id="input{{ loop.index }}nginxConfigTextarea" placeholder="Enter custom Nginx config..."></textarea>
                             <div class="popup-buttons">
-                                <button class="config-buttons" onclick="saveNginxConfig({{ loop.index }})">Save</button>
+                                <button class="config-buttons" onclick="saveNginxConfig({{ loop.index }}, '{{ entries[index]['domain_name'] }}')">Save</button>
                                 <button class="config-buttons" onclick="closePopup({{ loop.index }})">Close</button>
                             </div>
                         </div>
@@ -390,12 +390,12 @@
     </div>
 
     <script>
-        async function openPopup(index) {
+        async function openPopup(index, domain_name) {
             document.getElementById(`${index}popupOverlay`).style.display = "block";
             document.getElementById(`${index}nginxPopup`).style.display = "flex";
 
             let formData = FormData()
-            formData.append("domain_name", '{{ entries[index]["domain_name"] }}')
+            formData.append("domain_name", domain_name)
 
             let response = await fetch("/get_custom_nginx_template", { method: "POST", body: formData });
             let result = await response.json();
@@ -408,11 +408,11 @@
             document.getElementById(`${index}nginxPopup`).style.display = "none";
         }
         
-        function saveNginxConfig(index) {
+        function saveNginxConfig(index, domain_name) {
             let configText = document.getElementById(`input${index}nginxConfigTextarea`).value;
             
             let formData = FormData()
-            formData.append("domain_name", '{{ entries[index]["domain_name"] }}')
+            formData.append("domain_name", domain_name)
             formData.append("nginx_template", configText)
 
             let response = await fetch("/update_custom_nginx_template", { method: "POST", body: formData });
@@ -451,7 +451,6 @@
         async function updateEntity(index) {
             let formData = new FormData();
             formData.append("domain_name", document.getElementById(`input${index}domain_name`).value);
-            formData.append("config_file_path", document.getElementById(`input${index}config_file_path`).value);
             formData.append("protocol", document.getElementById(`input${index}protocol`).value);
             formData.append("ipv6_address", document.getElementById(`input${index}ipv6_address`).value);
             formData.append("access_code", document.getElementById(`input${index}access_code`).value);
