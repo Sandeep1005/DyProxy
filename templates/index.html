@@ -443,7 +443,7 @@
                                         curl -X POST "{{ client_tool_url }}"
                                         -H "Content-Type: application/json"
                                         -d '{"domain_name": "{{ entry['domain_name'] }}", "access_code": "{{ entry['access_code'] }}"}'
-                                        -o '/home/$USER/{{ entry['domain_name'] }}.sh'
+                                        -o /home/$USER/{{ entry['domain_name'] }}.sh
                                     </code>
                                 </p>
                                 <p>This will download the client bash script and saves it into a file at current user's home folder.</p>

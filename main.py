@@ -437,14 +437,14 @@ def get_client_tool_code():
     
     # Create a file-like object from the client_tool_code string
     client_tool_code = get_client_tool_bash_script(domain_name=domain_name)
-    file_like_object = io.StringIO(client_tool_code)
+    file_like_object = io.BytesIO(client_tool_code.encode("utf-8"))
 
     # Send the content as a file download
     return send_file(
         file_like_object,
         as_attachment=True,
-        download_name=f"{domain_name}.bash",
-        mimetype="application/bash"
+        download_name=f"{domain_name}.sh",
+        mimetype="application/x-sh"
     )
 
 
