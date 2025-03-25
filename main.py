@@ -293,6 +293,7 @@ def delete_single_reverse_proxy(config_file_path):
 CLIENT_TOOL_CODE_PATH="client_bash_code.txt"
 CHECK_IP_SERVICE="http://ipv6check.bysandeep.site/"
 DDNS_UPDATE_URL="http://ddnsdiy.bysandeep.site/update_ipv6"
+GET_CLIENT_TOOL_URL = "http://ddnsdiy.bysandeep.site/get_client_tool_code"
 
 def load_client_tool_template():
     with open(CLIENT_TOOL_CODE_PATH, 'r') as file:
@@ -425,9 +426,6 @@ def get_client_tool_code():
     domain_name = request.json.get("domain_name")
     access_code = request.json.get("access_code")
 
-    # Load config into variable
-    current_config = load_config()
-
     # 1) Check if domain name exists in current sites
     domain_config = get_domain_config(domain_name)
     if domain_config is None:
@@ -484,7 +482,8 @@ def dashboard():
                            username=session["username"], 
                            nginx_template=load_default_nginx_template(),
                            entry_keys=config["required_keys"],
-                           last_updated=last_updated_times)
+                           last_updated=last_updated_times,
+                           client_tool_url=GET_CLIENT_TOOL_URL)
 
 
 @app.route("/logout")

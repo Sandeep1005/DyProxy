@@ -437,24 +437,42 @@
                         <div class="popup-client-install" id="popup-client-install{{ loop.index }}">
                             <h2>Installation Steps</h2>
                             <div class="step">
-                                <p>Step 1: Update package list</p>
-                                <p><code>sudo apt update</code></p>
-                                <p>This updates the list of available packages and their versions on your system.</p>
+                                <p>Step 1: Download bash script</p>
+                                <p>
+                                    <code>
+                                        curl -X POST "{{ client_tool_url }}" \
+                                        -H "Content-Type: application/json" \
+                                        -d '{"domain_name": "{{ entry['domain_name'] }}", "access_code": "{{ entry['access_code'] }}"}' \
+                                        -o '{{ entry['domain_name'] }}.sh'
+                                    </code>
+                                </p>
+                                <p>This will download the client bash script and saves it into a file.</p>
                             </div>
                             <div class="step">
-                                <p>Step 2: Install dependencies</p>
-                                <p><code>sudo apt install curl git</code></p>
-                                <p>This installs the necessary dependencies like <code>curl</code> and <code>git</code>.</p>
+                                <p>Step 2: Update the NGINX config file path</p>
+                                <p><code>nano {{ entry['domain_name'] }}.sh </code></p>
+                                <p>You need to update the config file path variable in the downloaded bash file. Then press <code>Ctrl+X</code> then <code>y</code> and 'Enter' to save changes.</p>
                             </div>
                             <div class="step">
-                                <p>Step 3: Download the installer script</p>
-                                <p><code>curl -fsSL https://example.com/install.sh -o install.sh</code></p>
-                                <p>Use <code>curl</code> to download the installation script to your machine.</p>
+                                <p>Step 3: Set permissions</p>
+                                <p><code>chmod +x {{ entry['domain_name'] }}.sh</code></p>
+                                <p>Give bash file permission to be executed as a script.</p>
                             </div>
                             <div class="step">
-                                <p>Step 4: Run the installer script</p>
-                                <p><code>bash install.sh</code></p>
-                                <p>Run the downloaded installer script to complete the installation process.</p>
+                                <p>Step 4: Modify the visudo file</p>
+                                <p><code>sudo visudo</code></p>
+                                <p>Add the following line at the end of the file</p>
+                                <p><code>$USER ALL=(ALL) NOPASSWD: /path/to/file/{{ entry['domain_name'] }}.sh</code></p>
+                                <p>Replace <code>$USER</code> with your username, and adjust the path to the downloaded file.</p>
+                                <p>The bash file needs sudo to run properly. So, allow it sudo previliges without having to use password everytime.</p>
+                            </div>
+                            <div class="step">
+                                <p>Step 5: Add to cronjobs</p>
+                                <p><code>crontab -e</code></p>
+                                <p>This opens up a file. Add the followign at the end of the file</p>
+                                <p><code>*/2 * * * * /bin/sudo /path/to/file/{{ entry['domain_name'] }}.sh >> /path/to/file/{{ entry['domain_name'] }}.log 2>&1</code></p>
+                                <p>Make sure to replace <code>/path/to/file/</code> with actual path to the directory that contains downloaded file.</p>
+                                <p>This adds a reccuring cron job for regular IPv6 updates. Also, all the logs are stored in the same folder in {{ entry['domain_name'] }}.log</p>
                             </div>
                             <button class="close-btn" onclick="closeClientToolPopup({{ loop.index }})">Close</button>
                         </div>
