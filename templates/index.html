@@ -318,9 +318,9 @@
         }
 
         .step {
-            margin-bottom: 20px;
-            padding: 15px;
-            background: #f8f9fa;
+            margin-bottom: 5px;
+            padding: 5px;
+            background: #e7f0f9;
             border-radius: 8px;
             transition: 0.3s ease-in-out;
         }
@@ -437,22 +437,22 @@
                         <div class="popup-client-install" id="popup-client-install{{ loop.index }}">
                             <h2>Installation Steps</h2>
                             <div class="step">
-                                <h5>Step 1: Update package list</h5>
+                                <p>Step 1: Update package list</p>
                                 <p><code>sudo apt update</code></p>
                                 <p>This updates the list of available packages and their versions on your system.</p>
                             </div>
                             <div class="step">
-                                <h5>Step 2: Install dependencies</h5>
+                                <p>Step 2: Install dependencies</p>
                                 <p><code>sudo apt install curl git</code></p>
                                 <p>This installs the necessary dependencies like <code>curl</code> and <code>git</code>.</p>
                             </div>
                             <div class="step">
-                                <h5>Step 3: Download the installer script</h5>
+                                <p>Step 3: Download the installer script</p>
                                 <p><code>curl -fsSL https://example.com/install.sh -o install.sh</code></p>
                                 <p>Use <code>curl</code> to download the installation script to your machine.</p>
                             </div>
                             <div class="step">
-                                <h5>Step 4: Run the installer script</h5>
+                                <p>Step 4: Run the installer script</p>
                                 <p><code>bash install.sh</code></p>
                                 <p>Run the downloaded installer script to complete the installation process.</p>
                             </div>
