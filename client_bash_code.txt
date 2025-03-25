@@ -1,14 +1,14 @@
 #!/bin/bash
 
 # Define the Nginx configuration file
-CONFIG_FILE="/etc/nginx/sites-available/cloud.bysandeep.site"
+CONFIG_FILE="/path/to/nginx/config"
 
 # Define variables
-CHECK_IP_SERVICE="http://ipv6check.bysandeep.site/"
-DDNS_UPDATE_URL="http://ddnsdiy.bysandeep.site/update_ipv6"
-ACCESS_CODE="your_secret_code"
-LOG_FILE="$HOME/ddns_update.log"
-DOMAIN_NAME="cloud.bysandeep.site"
+CHECK_IP_SERVICE="$#@check_ip_service"
+DDNS_UPDATE_URL="$#@ddns_update_url"
+ACCESS_CODE="$#@access_code"
+LOG_FILE="$HOME/$#@domain_name.log"
+DOMAIN_NAME="$#@domain_name"
 
 # Get the current public IPv6 address
 IPV6_ADDR=$(curl -6 -s $CHECK_IP_SERVICE)

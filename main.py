@@ -2,7 +2,8 @@ import subprocess
 import re
 import time
 
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify
+import io
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_file
 import yaml
 import os
 import bcrypt
@@ -287,6 +288,30 @@ def delete_single_reverse_proxy(config_file_path):
         return True
     except:
         return False
+    
+
+CLIENT_TOOL_CODE_PATH="client_bash_code.txt"
+CHECK_IP_SERVICE="http://ipv6check.bysandeep.site/"
+DDNS_UPDATE_URL="http://ddnsdiy.bysandeep.site/update_ipv6"
+
+def load_client_tool_template():
+    with open(CLIENT_TOOL_CODE_PATH, 'r') as file:
+        client_tool_template = file.read()
+    return client_tool_template
+
+
+def get_client_tool_bash_script(domain_name):
+    config = load_config()
+    if domain_name not in config["ddns_entries"]:
+        return "Requested domain does not exist"
+    
+    tool_code = load_client_tool_template()
+    tool_code = tool_code.replace("$#@check_ip_service", CHECK_IP_SERVICE)
+    tool_code = tool_code.replace("$#@ddns_update_url", DDNS_UPDATE_URL)
+    tool_code = tool_code.replace("$#@access_code", config["ddns_entries"][domain_name]["access_code"])
+    tool_code = tool_code.replace("$#@domain_name", domain_name)
+
+    return tool_code
 
 
 ### Flask app and end points
@@ -393,6 +418,36 @@ def update_ipv6():
     else:
         return_message += "updated"
     return jsonify({"message": return_message})
+
+
+@app.post("/get_client_tool_code")
+def get_client_tool_code():
+    domain_name = request.json.get("domain_name")
+    access_code = request.json.get("access_code")
+
+    # Load config into variable
+    current_config = load_config()
+
+    # 1) Check if domain name exists in current sites
+    domain_config = get_domain_config(domain_name)
+    if domain_config is None:
+        return jsonify({"error": "Domain is not registered for DDNS"}), 403
+    
+    # 2) Authentication with domain name and access code
+    if not is_authentic_request(domain_config=domain_config, access_code=access_code):
+        return jsonify({"error": "Unauthorized (incorrect access code)"}), 403
+    
+    # Create a file-like object from the client_tool_code string
+    client_tool_code = get_client_tool_bash_script(domain_name=domain_name)
+    file_like_object = io.StringIO(client_tool_code)
+
+    # Send the content as a file download
+    return send_file(
+        file_like_object,
+        as_attachment=True,
+        download_name=f"{domain_name}.bash",
+        mimetype="application/bash"
+    )
 
 
 ### End points for User Interface
