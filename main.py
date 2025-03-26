@@ -8,7 +8,7 @@ import yaml
 import os
 import bcrypt
 import secrets
-from datetime import timedelta
+from datetime import timedelta, datetime
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
@@ -20,6 +20,11 @@ NGINX_TEMPLATE_FILE_HTTPS = "./default_nginx_template_https.txt"
 
 AUTH_FILE = "auth.yaml"
 
+CLIENT_TOOL_CODE_PATH="client_bash_code.txt"
+CHECK_IP_SERVICE="http://ipv6check.bysandeep.site/"
+DDNS_UPDATE_URL="http://ddnsdiy.bysandeep.site/update_ipv6"
+GET_CLIENT_TOOL_URL = "http://ddnsdiy.bysandeep.site/get_client_tool_code"
+
 
 def load_config():
     with open(CONFIG_FILE, 'r') as file:
@@ -30,6 +35,26 @@ def load_config():
 def save_config(updated_config):
     with open(CONFIG_FILE, "w") as file:
         yaml.safe_dump(updated_config, file, default_flow_style=False, sort_keys=False)
+
+
+def load_global_variables():
+    config = load_config()
+    global_vars = config["global_variables"]
+    
+    global NGINX_TEMPLATE_FILE_HTTP
+    NGINX_TEMPLATE_FILE_HTTP = global_vars["NGINX_TEMPLATE_FILE_HTTP"]
+    global NGINX_TEMPLATE_FILE_HTTPS
+    NGINX_TEMPLATE_FILE_HTTPS = global_vars["NGINX_TEMPLATE_FILE_HTTPS"]
+    global AUTH_FILE
+    AUTH_FILE = global_vars["AUTH_FILE"]
+    global CLIENT_TOOL_CODE_PATH
+    CLIENT_TOOL_CODE_PATH = global_vars["CLIENT_TOOL_CODE_PATH"]
+    global CHECK_IP_SERVICE
+    CHECK_IP_SERVICE = f"{config["required_sites"]["ipv6_checker"]["protocol"]}://{config["required_sites"]["ipv6_checker"]["domain_name"]}/"
+    global DDNS_UPDATE_URL
+    DDNS_UPDATE_URL = f"{config["required_sites"]["app"]["protocol"]}://{config["required_sites"]["app"]["domain_name"]}/{global_vars["DDNS_UPDATE_ENDPOINT"]}"
+    global GET_CLIENT_TOOL_URL
+    GET_CLIENT_TOOL_URL = f"{config["required_sites"]["app"]["protocol"]}://{config["required_sites"]["app"]["domain_name"]}/{global_vars["GET_CLIENT_TOOL_ENDPOINT"]}"
 
 
 def get_domain_config(domain):
@@ -290,11 +315,6 @@ def delete_single_reverse_proxy(config_file_path):
         return False
     
 
-CLIENT_TOOL_CODE_PATH="client_bash_code.txt"
-CHECK_IP_SERVICE="http://ipv6check.bysandeep.site/"
-DDNS_UPDATE_URL="http://ddnsdiy.bysandeep.site/update_ipv6"
-GET_CLIENT_TOOL_URL = "http://ddnsdiy.bysandeep.site/get_client_tool_code"
-
 def load_client_tool_template():
     with open(CLIENT_TOOL_CODE_PATH, 'r') as file:
         client_tool_template = file.read()
@@ -315,8 +335,84 @@ def get_client_tool_bash_script(domain_name):
     return tool_code
 
 
+### SSL certificate management
+def obtain_certificate(domain, email):
+    try:
+        result = subprocess.run([
+            "certbot", "certonly", "--standalone",
+            "--non-interactive", "--agree-tos",
+            "--email", email, "-d", domain
+        ], capture_output=True, text=True, check=True)
+
+        # Extract the certificate path from the output
+        match = re.search(r'Saving debug log to (.*)', result.stdout)
+        if match:
+            cert_path = f"/etc/letsencrypt/live/{domain}/fullchain.pem"
+            key_path = f"/etc/letsencrypt/live/{domain}/privkey.pem"
+            if os.path.exists(cert_path) and os.path.exists(key_path):
+                return cert_path, key_path
+
+        raise FileNotFoundError("Certificate files were not found after Certbot execution.")
+    
+    except subprocess.CalledProcessError as e:
+        print(f"Error obtaining certificate: {e}")
+    except FileNotFoundError as e:
+        print(e)
+    
+    return None, None  # Return None if something goes wrong
+
+
+def is_certificate_expired(domain):
+    cert_path = f"/etc/letsencrypt/live/{domain}/cert.pem"
+    try:
+        result = subprocess.run(
+            ["openssl", "x509", "-enddate", "-noout", "-in", cert_path],
+            capture_output=True, text=True, check=True
+        )
+        expiry_str = result.stdout.strip().split("=")[1]
+        expiry_date = datetime.strptime(expiry_str, "%b %d %H:%M:%S %Y %Z")
+
+        days_left = (expiry_date - datetime.utcnow()).days
+        print(f"Certificate for {domain} expires in {days_left} days.")
+
+        return days_left <= 30  # Renew if 30 days or less
+    except Exception as e:
+        print(f"Error checking certificate expiry: {e}")
+        return True  # Assume expired if check fails
+    
+
+def renew_certificate_for_domain(domain):
+    try:
+        subprocess.run(["certbot", "renew", "--cert-name", domain, "--quiet"], check=True)
+        print(f"Certificate for {domain} renewed successfully!")
+        return True
+    except subprocess.CalledProcessError as e:
+        print(f"Error renewing certificate for {domain}: {e}")
+        return False
+    
+
+def create_required_sites():
+    config = load_config()
+
+    for site, site_config in config["required_sites"].items():
+        
+
+
+# Function that will adjust things before server starts
+def initial_setup():
+    # Loading updated global variables
+    load_global_variables()
+
+    # Create reverse proxies for existing sites
+    create_reverse_proxies()
+
+    # Create Sites for required services (ipv6check and app)
+    create_required_sites()
+
+
 ### Flask app and end points
 app = Flask(__name__)
+
 
 app.secret_key = os.getenv("SECRET_KEY", secrets.token_hex(32))  # Secure secret key
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=15)  # Auto logout after 15 min
