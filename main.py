@@ -481,6 +481,10 @@ def initial_setup():
     create_app_site()
 
 
+# Calling the initial setup function
+initial_setup()
+
+
 ### Flask app and end points
 app = Flask(__name__)
 
