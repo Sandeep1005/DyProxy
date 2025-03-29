@@ -34,3 +34,28 @@ ddns_entries:
     ssl_private_key_path: /etc/nginx/ssl/test.bysandeep.site/private.key
     ssl_certificate_crt_path: /etc/nginx/ssl/test.bysandeep.site/certificate.crt
     custom_nginx_config_path: nginx_configs/minio.bysandeep.site.txt
+required_sites:
+  ipv6_checker:
+    domain_name: ipv6check.bysandeep.site
+    ssl_available: False
+    ssl_private_key_path: None
+    ssl_certificate_crt_path: None
+    default_config_path_http: nginx_configs/ipv6check.bysandeep.site.http.txt
+    default_config_path_https: nginx_configs/ipv6check.bysandeep.site.https.txt
+    config_file_path: /etc/nginx/conf.d/ipv6check.bysandeep.site.conf
+  app:
+    domain_name: ddnsdiy.bysandeep.site
+    app_port: 8000
+    ssl_available: False
+    ssl_private_key_path: None
+    ssl_certificate_crt_path: None
+    default_config_path_http: nginx_configs/ddnsdiy.bysandeep.site.http.txt
+    default_config_path_https: nginx_configs/ddnsdiy.bysandeep.site.https.txt
+    config_file_path: /etc/nginx/conf.d/ddnsdiy.bysandeep.site.conf
+global_variables:
+  NGINX_TEMPLATE_FILE_HTTP: default_nginx_template_http.txt
+  NGINX_TEMPLATE_FILE_HTTPS: default_nginx_template_https.txt
+  AUTH_FILE: auth.yaml
+  CLIENT_TOOL_CODE_PATH: client_bash_code.txt
+  DDNS_UPDATE_ENDPOINT: update_ipv6
+  GET_CLIENT_TOOL_ENDPOINT: get_client_tool_code
