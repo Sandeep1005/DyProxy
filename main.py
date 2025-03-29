@@ -335,7 +335,7 @@ def get_client_tool_bash_script(domain_name):
     return tool_code
 
 
-### SSL certificate management
+### SSL certificate management for default sites
 def obtain_certificate(domain, email):
     try:
         result = subprocess.run([
@@ -391,11 +391,81 @@ def renew_certificate_for_domain(domain):
         return False
     
 
-def create_required_sites():
-    config = load_config()
+def are_ssl_certs_present(ssl_certificate_crt_path, ssl_private_key_path):
+    if ssl_certificate_crt_path is None or ssl_private_key_path is None:
+        return False
+    if os.path.exists(ssl_certificate_crt_path) and os.path.exists(ssl_private_key_path):
+        return True
+    else:
+        return False
 
-    for site, site_config in config["required_sites"].items():
-        
+
+def create_ipv6_checker_site():
+    config = load_config()
+    site_config = config["required_sites"]["ipv6_checker"]
+
+    ssl_present = are_ssl_certs_present(site_config["ssl_certificate_crt_path"], site_config["ssl_private_key_path"])
+    if ssl_present:
+        config_template_path = 'nginx_for_ipv6check_https.txt'
+    else:
+        config_template_path = 'nginx_for_ipv6check_http.txt'
+    with open(config_template_path, 'r') as file:
+        config_template = config_template_path.read()
+    config_template = config_template.replace("$#@domain_name", site_config["domain_name"])
+    if ssl_present:
+        config_template = config_template.replace("$#@ssl_certificate_crt_path", site_config["ssl_certificate_crt_path"])
+        config_template = config_template.replace("$#@ssl_private_key_path", site_config["ssl_private_key_path"])
+
+    echo_process = subprocess.Popen(["echo", config_template], stdout=subprocess.PIPE)
+    subprocess.run(["sudo", "tee", site_config["config_file_path"]], stdin=echo_process.stdout, check=True)
+    print(f"Created {site_config["config_file_path"]} for ipv6 check")
+
+    # Reload Nginx with sudo
+    subprocess.run(["sudo", "systemctl", "reload", "nginx"], check=True)
+    print("Nginx reloaded successfully")
+
+    if not ssl_present:
+        cert_path, key_path = obtain_certificate(domain=site_config["domain_name"], email="sandeepzphs98@gmail.com")
+        if are_ssl_certs_present(cert_path, key_path):
+            config["required_sites"]["ipv6_checker"]["ssl_certificate_crt_path"] = cert_path
+            config["required_sites"]["ipv6_checker"]["ssl_private_key_path"] = key_path
+        save_config(config)
+        create_ipv6_checker_site()
+
+
+def create_app_site():
+    config = load_config()
+    site_config = config["required_sites"]["app"]
+
+    ssl_present = are_ssl_certs_present(site_config["ssl_certificate_crt_path"], site_config["ssl_private_key_path"])
+    if ssl_present:
+        config_template_path = 'nginx_for_app_https.txt'
+    else:
+        config_template_path = 'nginx_for_app_http.txt'
+    with open(config_template_path, 'r') as file:
+        config_template = config_template_path.read()
+    config_template = config_template.replace("$#@domain_name", site_config["domain_name"])
+    config_template = config_template.replace("$#@app_port", site_config["app_port"])
+    if ssl_present:
+        config_template = config_template.replace("$#@ssl_certificate_crt_path", site_config["ssl_certificate_crt_path"])
+        config_template = config_template.replace("$#@ssl_private_key_path", site_config["ssl_private_key_path"])
+
+    echo_process = subprocess.Popen(["echo", config_template], stdout=subprocess.PIPE)
+    subprocess.run(["sudo", "tee", site_config["config_file_path"]], stdin=echo_process.stdout, check=True)
+    print(f"Created {site_config["config_file_path"]} for ipv6 check")
+
+    # Reload Nginx with sudo
+    subprocess.run(["sudo", "systemctl", "reload", "nginx"], check=True)
+    print("Nginx reloaded successfully")
+
+    if not ssl_present:
+        cert_path, key_path = obtain_certificate(domain=site_config["domain_name"], email="sandeepzphs98@gmail.com")
+        if are_ssl_certs_present(cert_path, key_path):
+            config["required_sites"]["ipv6_checker"]["ssl_certificate_crt_path"] = cert_path
+            config["required_sites"]["ipv6_checker"]["ssl_private_key_path"] = key_path
+        save_config(config)
+        create_ipv6_checker_site()
+
 
 
 # Function that will adjust things before server starts
@@ -407,7 +477,8 @@ def initial_setup():
     create_reverse_proxies()
 
     # Create Sites for required services (ipv6check and app)
-    create_required_sites()
+    create_ipv6_checker_site()
+    create_app_site()
 
 
 ### Flask app and end points

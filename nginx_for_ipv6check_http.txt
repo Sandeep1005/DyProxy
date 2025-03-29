@@ -1,0 +1,9 @@
+server {
+    listen [::]:80;  # IPv6
+    server_name $#@domain_name;
+
+    location / {
+        return 200 "$remote_addr\n";
+        default_type text/plain;
+    }
+}
