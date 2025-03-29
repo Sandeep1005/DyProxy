@@ -52,9 +52,9 @@ def load_global_variables():
     global CHECK_IP_SERVICE
     CHECK_IP_SERVICE = f"{config['required_sites']['ipv6_checker']['protocol']}://{config['required_sites']['ipv6_checker']['domain_name']}/"
     global DDNS_UPDATE_URL
-    DDNS_UPDATE_URL = f"{config["required_sites"]["app"]["protocol"]}://{config["required_sites"]["app"]["domain_name"]}/{global_vars["DDNS_UPDATE_ENDPOINT"]}"
+    DDNS_UPDATE_URL = f"{config['required_sites']['app']['protocol']}://{config['required_sites']['app']['domain_name']}/{global_vars['DDNS_UPDATE_ENDPOINT']}"
     global GET_CLIENT_TOOL_URL
-    GET_CLIENT_TOOL_URL = f"{config["required_sites"]["app"]["protocol"]}://{config["required_sites"]["app"]["domain_name"]}/{global_vars["GET_CLIENT_TOOL_ENDPOINT"]}"
+    GET_CLIENT_TOOL_URL = f"{config['required_sites']['app']['protocol']}://{config['required_sites']['app']['domain_name']}/{global_vars['GET_CLIENT_TOOL_ENDPOINT']}"
 
 
 def get_domain_config(domain):
