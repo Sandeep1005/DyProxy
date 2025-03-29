@@ -424,17 +424,17 @@ def create_ipv6_checker_site():
     subprocess.run(["sudo", "systemctl", "reload", "nginx"], check=True)
     print("Nginx reloaded successfully")
 
-    if not ssl_present:
-        cert_path, key_path = obtain_certificate(domain=site_config["domain_name"], email="sandeepzphs98@gmail.com")
-        if are_ssl_certs_present(cert_path, key_path):
-            config["required_sites"]["ipv6_checker"]["ssl_certificate_crt_path"] = cert_path
-            config["required_sites"]["ipv6_checker"]["ssl_private_key_path"] = key_path
-        else:
-            print("Unable to make ipv6checker to https")
-            return 
-        site_config["protocol"] = 'https'
-        save_config(config)
-        create_ipv6_checker_site()
+    # if not ssl_present:
+    #     cert_path, key_path = obtain_certificate(domain=site_config["domain_name"], email="sandeepzphs98@gmail.com")
+    #     if are_ssl_certs_present(cert_path, key_path):
+    #         config["required_sites"]["ipv6_checker"]["ssl_certificate_crt_path"] = cert_path
+    #         config["required_sites"]["ipv6_checker"]["ssl_private_key_path"] = key_path
+    #     else:
+    #         print("Unable to make ipv6checker to https")
+    #         return 
+    #     site_config["protocol"] = 'https'
+    #     save_config(config)
+    #     create_ipv6_checker_site()
 
 
 def create_app_site():
@@ -462,17 +462,17 @@ def create_app_site():
     subprocess.run(["sudo", "systemctl", "reload", "nginx"], check=True)
     print("Nginx reloaded successfully")
 
-    if not ssl_present:
-        cert_path, key_path = obtain_certificate(domain=site_config["domain_name"], email="sandeepzphs98@gmail.com")
-        if are_ssl_certs_present(cert_path, key_path):
-            config["required_sites"]["ipv6_checker"]["ssl_certificate_crt_path"] = cert_path
-            config["required_sites"]["ipv6_checker"]["ssl_private_key_path"] = key_path
-        else:
-            print('Unable to make app site https')
-            return 
-        site_config["protocol"] = 'https'
-        save_config(config)
-        create_ipv6_checker_site()
+    # if not ssl_present:
+    #     cert_path, key_path = obtain_certificate(domain=site_config["domain_name"], email="sandeepzphs98@gmail.com")
+    #     if are_ssl_certs_present(cert_path, key_path):
+    #         config["required_sites"]["ipv6_checker"]["ssl_certificate_crt_path"] = cert_path
+    #         config["required_sites"]["ipv6_checker"]["ssl_private_key_path"] = key_path
+    #     else:
+    #         print('Unable to make app site https')
+    #         return 
+    #     site_config["protocol"] = 'https'
+    #     save_config(config)
+    #     create_ipv6_checker_site()
 
 
 
