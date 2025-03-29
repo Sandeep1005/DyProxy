@@ -429,6 +429,9 @@ def create_ipv6_checker_site():
         if are_ssl_certs_present(cert_path, key_path):
             config["required_sites"]["ipv6_checker"]["ssl_certificate_crt_path"] = cert_path
             config["required_sites"]["ipv6_checker"]["ssl_private_key_path"] = key_path
+        else:
+            print("Unable to make ipv6checker to https")
+            return 
         site_config["protocol"] = 'https'
         save_config(config)
         create_ipv6_checker_site()
@@ -464,6 +467,9 @@ def create_app_site():
         if are_ssl_certs_present(cert_path, key_path):
             config["required_sites"]["ipv6_checker"]["ssl_certificate_crt_path"] = cert_path
             config["required_sites"]["ipv6_checker"]["ssl_private_key_path"] = key_path
+        else:
+            print('Unable to make app site https')
+            return 
         site_config["protocol"] = 'https'
         save_config(config)
         create_ipv6_checker_site()
