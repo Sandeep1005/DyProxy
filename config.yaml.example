@@ -37,6 +37,7 @@ ddns_entries:
 required_sites:
   ipv6_checker:
     domain_name: ipv6check.bysandeep.site
+    protocol: http
     ssl_available: False
     ssl_private_key_path: None
     ssl_certificate_crt_path: None
@@ -45,6 +46,7 @@ required_sites:
     config_file_path: /etc/nginx/conf.d/ipv6check.bysandeep.site.conf
   app:
     domain_name: ddnsdiy.bysandeep.site
+    protocol: http
     app_port: 8000
     ssl_available: False
     ssl_private_key_path: None
