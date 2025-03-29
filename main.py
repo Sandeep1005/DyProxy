@@ -410,7 +410,7 @@ def create_ipv6_checker_site():
     else:
         config_template_path = 'nginx_for_ipv6check_http.txt'
     with open(config_template_path, 'r') as file:
-        config_template = config_template_path.read()
+        config_template = file.read()
     config_template = config_template.replace("$#@domain_name", site_config["domain_name"])
     if ssl_present:
         config_template = config_template.replace("$#@ssl_certificate_crt_path", site_config["ssl_certificate_crt_path"])
@@ -444,7 +444,7 @@ def create_app_site():
     else:
         config_template_path = 'nginx_for_app_http.txt'
     with open(config_template_path, 'r') as file:
-        config_template = config_template_path.read()
+        config_template = file.read()
     config_template = config_template.replace("$#@domain_name", site_config["domain_name"])
     config_template = config_template.replace("$#@app_port", site_config["app_port"])
     if ssl_present:
@@ -475,12 +475,12 @@ def initial_setup():
     # Loading updated global variables
     load_global_variables()
 
-    # Create reverse proxies for existing sites
-    create_reverse_proxies()
-
     # Create Sites for required services (ipv6check and app)
     create_ipv6_checker_site()
     create_app_site()
+
+    # Create reverse proxies for existing sites
+    create_reverse_proxies()
 
 
 # Calling the initial setup function
