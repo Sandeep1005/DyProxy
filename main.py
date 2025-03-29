@@ -418,7 +418,7 @@ def create_ipv6_checker_site():
 
     echo_process = subprocess.Popen(["echo", config_template], stdout=subprocess.PIPE)
     subprocess.run(["sudo", "tee", site_config["config_file_path"]], stdin=echo_process.stdout, check=True)
-    print(f"Created {site_config["config_file_path"]} for ipv6 check")
+    print(f"Created {site_config['config_file_path']} for ipv6 check")
 
     # Reload Nginx with sudo
     subprocess.run(["sudo", "systemctl", "reload", "nginx"], check=True)
@@ -453,7 +453,7 @@ def create_app_site():
 
     echo_process = subprocess.Popen(["echo", config_template], stdout=subprocess.PIPE)
     subprocess.run(["sudo", "tee", site_config["config_file_path"]], stdin=echo_process.stdout, check=True)
-    print(f"Created {site_config["config_file_path"]} for ipv6 check")
+    print(f"Created {site_config['config_file_path']} for ipv6 check")
 
     # Reload Nginx with sudo
     subprocess.run(["sudo", "systemctl", "reload", "nginx"], check=True)
