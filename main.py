@@ -413,8 +413,8 @@ def create_ipv6_checker_site():
         config_template = file.read()
     config_template = config_template.replace("$#@domain_name", site_config["domain_name"])
     if ssl_present:
-        config_template = config_template.replace("$#@ssl_certificate_crt_path", site_config["ssl_certificate_crt_path"])
-        config_template = config_template.replace("$#@ssl_private_key_path", site_config["ssl_private_key_path"])
+        config_template = config_template.replace("$#@ssl_certificate_crt_path", site_config["ssl_certificate_crt_path"] or "")
+        config_template = config_template.replace("$#@ssl_private_key_path", site_config["ssl_private_key_path"] or "")
 
     echo_process = subprocess.Popen(["echo", config_template], stdout=subprocess.PIPE)
     subprocess.run(["sudo", "tee", site_config["config_file_path"]], stdin=echo_process.stdout, check=True)
@@ -449,10 +449,10 @@ def create_app_site():
     with open(config_template_path, 'r') as file:
         config_template = file.read()
     config_template = config_template.replace("$#@domain_name", site_config["domain_name"])
-    config_template = config_template.replace("$#@app_port", site_config["app_port"])
+    config_template = config_template.replace("$#@app_port", str(site_config["app_port"]))
     if ssl_present:
-        config_template = config_template.replace("$#@ssl_certificate_crt_path", site_config["ssl_certificate_crt_path"])
-        config_template = config_template.replace("$#@ssl_private_key_path", site_config["ssl_private_key_path"])
+        config_template = config_template.replace("$#@ssl_certificate_crt_path", site_config["ssl_certificate_crt_path"] or "")
+        config_template = config_template.replace("$#@ssl_private_key_path", site_config["ssl_private_key_path"] or "")
 
     echo_process = subprocess.Popen(["echo", config_template], stdout=subprocess.PIPE)
     subprocess.run(["sudo", "tee", site_config["config_file_path"]], stdin=echo_process.stdout, check=True)
