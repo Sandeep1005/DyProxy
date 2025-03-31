@@ -339,7 +339,7 @@ def get_client_tool_bash_script(domain_name):
 def obtain_certificate(domain, email):
     try:
         result = subprocess.run([
-            "certbot", "certonly", "--standalone",
+            "sudo", "certbot", "certonly", "--standalone",
             "--non-interactive", "--agree-tos",
             "--email", email, "-d", domain
         ], capture_output=True, text=True, check=True)
@@ -366,7 +366,7 @@ def is_certificate_expired(domain):
     cert_path = f"/etc/letsencrypt/live/{domain}/cert.pem"
     try:
         result = subprocess.run(
-            ["openssl", "x509", "-enddate", "-noout", "-in", cert_path],
+            ["sudo", "openssl", "x509", "-enddate", "-noout", "-in", cert_path],
             capture_output=True, text=True, check=True
         )
         expiry_str = result.stdout.strip().split("=")[1]
@@ -383,7 +383,7 @@ def is_certificate_expired(domain):
 
 def renew_certificate_for_domain(domain):
     try:
-        subprocess.run(["certbot", "renew", "--cert-name", domain, "--quiet"], check=True)
+        subprocess.run(["sudo", "certbot", "renew", "--cert-name", domain, "--quiet"], check=True)
         print(f"Certificate for {domain} renewed successfully!")
         return True
     except subprocess.CalledProcessError as e:
@@ -424,17 +424,17 @@ def create_ipv6_checker_site():
     subprocess.run(["sudo", "systemctl", "reload", "nginx"], check=True)
     print("Nginx reloaded successfully")
 
-    # if not ssl_present:
-    #     cert_path, key_path = obtain_certificate(domain=site_config["domain_name"], email="sandeepzphs98@gmail.com")
-    #     if are_ssl_certs_present(cert_path, key_path):
-    #         config["required_sites"]["ipv6_checker"]["ssl_certificate_crt_path"] = cert_path
-    #         config["required_sites"]["ipv6_checker"]["ssl_private_key_path"] = key_path
-    #     else:
-    #         print("Unable to make ipv6checker to https")
-    #         return 
-    #     site_config["protocol"] = 'https'
-    #     save_config(config)
-    #     create_ipv6_checker_site()
+    if not ssl_present:
+        cert_path, key_path = obtain_certificate(domain=site_config["domain_name"], email="sandeepzphs98@gmail.com")
+        if are_ssl_certs_present(cert_path, key_path):
+            config["required_sites"]["ipv6_checker"]["ssl_certificate_crt_path"] = cert_path
+            config["required_sites"]["ipv6_checker"]["ssl_private_key_path"] = key_path
+        else:
+            print("Unable to make ipv6checker to https")
+            return 
+        site_config["protocol"] = 'https'
+        save_config(config)
+        create_ipv6_checker_site()
 
 
 def create_app_site():
