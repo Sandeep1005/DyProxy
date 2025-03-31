@@ -404,7 +404,8 @@ def create_ipv6_checker_site():
     config = load_config()
     site_config = config["required_sites"]["ipv6_checker"]
 
-    ssl_present = are_ssl_certs_present(site_config["ssl_certificate_crt_path"], site_config["ssl_private_key_path"])
+    # ssl_present = are_ssl_certs_present(site_config["ssl_certificate_crt_path"], site_config["ssl_private_key_path"])
+    ssl_present = site_config["ssl_available"]
     if ssl_present:
         config_template_path = config["required_sites"]["ipv6_checker"]["default_config_path_https"]
     else:
@@ -441,7 +442,8 @@ def create_app_site():
     config = load_config()
     site_config = config["required_sites"]["app"]
 
-    ssl_present = are_ssl_certs_present(site_config["ssl_certificate_crt_path"], site_config["ssl_private_key_path"])
+    # ssl_present = are_ssl_certs_present(site_config["ssl_certificate_crt_path"], site_config["ssl_private_key_path"])
+    ssl_present = site_config["ssl_available"]
     if ssl_present:
         config_template_path = config["required_sites"]["app"]["default_config_path_https"]
     else:
