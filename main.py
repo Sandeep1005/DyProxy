@@ -406,9 +406,9 @@ def create_ipv6_checker_site():
 
     ssl_present = are_ssl_certs_present(site_config["ssl_certificate_crt_path"], site_config["ssl_private_key_path"])
     if ssl_present:
-        config_template_path = 'nginx_for_ipv6check_https.txt'
+        config_template_path = config["required_sites"]["ipv6_checker"]["default_config_path_https"]
     else:
-        config_template_path = 'nginx_for_ipv6check_http.txt'
+        config_template_path = config["required_sites"]["ipv6_checker"]["default_config_path_http"]
     with open(config_template_path, 'r') as file:
         config_template = file.read()
     config_template = config_template.replace("$#@domain_name", site_config["domain_name"])
@@ -443,9 +443,9 @@ def create_app_site():
 
     ssl_present = are_ssl_certs_present(site_config["ssl_certificate_crt_path"], site_config["ssl_private_key_path"])
     if ssl_present:
-        config_template_path = 'nginx_for_app_https.txt'
+        config_template_path = config["required_sites"]["app"]["default_config_path_https"]
     else:
-        config_template_path = 'nginx_for_app_http.txt'
+        config_template_path = config["required_sites"]["app"]["default_config_path_http"]
     with open(config_template_path, 'r') as file:
         config_template = file.read()
     config_template = config_template.replace("$#@domain_name", site_config["domain_name"])
