@@ -1,0 +1,21 @@
+server {
+    listen [::]:443 ssl;
+    server_name $#@domain_name;
+
+    ssl_certificate $#@ssl_certificate_crt_path;
+    ssl_certificate_key $#@ssl_private_key_path;
+
+    location / {
+        return 200 "$remote_addr\n";
+        default_type text/plain;
+    }
+}
+
+server {
+    listen [::]:80;
+    server_name $#@domain_name;
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
