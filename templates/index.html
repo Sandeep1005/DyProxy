@@ -3,693 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DDNS Configuration</title>
+    <title>Login</title>
+    <link rel="icon" type="image/png" href="/static/dyproxy.png"> 
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 20px;
             background-color: #f4f4f4;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
         }
-        .container {
-            max-width: 900px;
-            margin: auto;
+        .login-container {
+            max-width: 400px;
             background: white;
             padding: 20px;
             border-radius: 10px;
-            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.15);
+            text-align: center;
         }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-        }
-        th, td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-        }
-        th {
-            background-color: #007BFF;
-            color: white;
+        .dyproxy_image {
+            max-width: 80%;
+            height: auto;
+            {# margin-bottom: 10px; #}
         }
         input {
             width: 100%;
-            padding: 5px;
-            margin: 2px 0;
+            max-width: 350px;
+            padding: 12px;
+            margin: 10px 0;
             border: 1px solid #ddd;
             border-radius: 5px;
+            font-size: 16px;
+            outline: none;
+        }
+        input:focus {
+            border-color: #007BFF;
+            box-shadow: 0px 0px 5px rgba(0, 123, 255, 0.5);
         }
         button {
-            padding: 8px 12px;
-            background-color: #28a745;
+            padding: 10px 20px;
+            background-color: #0056b3;
             color: white;
             border: none;
             cursor: pointer;
             border-radius: 5px;
-        }
-        button.edit {
-            background-color: #007BFF;
-        }
-        button.delete {
-            background-color: #ff0000;
+            font-size: 15px;
+            transition: background 0.3s;
+            margin-top: 10px;
         }
         button:hover {
-            opacity: 0.8;
+            background-color: #004494;
         }
-        .settings-card {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.1);
-            margin-top: 10px;
-        }
-
-        .settings-card h4 {
+        .error {
+            color: red;
             margin-bottom: 10px;
-            font-size: 18px;
-            color: #333;
+            min-height: 20px;
         }
-
-        textarea {
-            width: 100%;
-            padding: 10px;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-            font-size: 14px;
-        }
-
-        .button-group {
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-            margin-top: 10px;
-        }
-
-        button.primary {
-            background-color: #007BFF;
-            color: white;
-            padding: 8px 12px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-
-        button.secondary {
-            background-color: #ff6347;
-            color: white;
-            padding: 8px 12px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-
-        .container-expandables {
-            display: flex;
-            flex-direction: column;
-            /* gap: 10px; */
-        }
-
-        .expandable {
-            background: rgb(231, 231, 231);
-            /* padding: 5px; */
-            border-radius: 12px;
-            width: 100%;
-            text-align: center;
-            transition: max-height 0.4s ease-in-out, padding 0.3s ease-in-out;
-            overflow: hidden;
-            margin: 5px 0px 5px 0px;
-        }
-
-        .toggle-row {
-            display: flex;
-            justify-content: space-around;
-            cursor: pointer;
-            padding:15px;
-        }
-
-        .hidden-content {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
-            opacity: 0;
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.4s ease-in-out, opacity 0.3s ease-in-out, padding 0.3s ease-in-out;
-        }
-
-        .input-group {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            width: 100%;
-            padding: 5px 0;
-        }
-
-        .input-group label {
-            font-size: 14px;
-            font-weight: bold;
-            width: 30%;
-            text-align: left;
-        }
-
-        .input-group input {
-            padding: 6px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            width: 65%;
-        }
-
-        .input-group select {
-            padding: 6px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-        }
-
-        /* Expanded state */
-        .expanded {
-            max-height: 1000px;
-        }
-
-        .expanded .hidden-content {
-            opacity: 1;
-            max-height: 1000px;
-            padding: 30px;
-        }
-
-        .domain-info-block {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .switch-container {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .switch {
-            position: relative;
-            display: inline-block;
-            width: 34px;
-            height: 20px;
-        }
-        .switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: #ccc;
-            transition: 0.4s;
-            border-radius: 20px;
-        }
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 14px;
-            width: 14px;
-            left: 3px;
-            bottom: 3px;
-            background-color: white;
-            transition: 0.4s;
-            border-radius: 50%;
-        }
-        input:checked + .slider {
-            background-color: #4CAF50;
-        }
-        input:checked + .slider:before {
-            transform: translateX(14px);
-        }
-        .config-buttons.button {
-            background-color: #007BFF;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-        .config-buttons.button:hover {
-            background-color: #0056b3;
-        }
-        .popup-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.6);
-            z-index: 999;
-        }
-        .popup {
-            display: none;
-            flex-direction: column;
-            justify-content: space-between;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            width: 600px;
-            z-index: 1000;
-        }
-        .popup textarea {
-            width: calc(100% - 20px);
-            height: 300px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            font-size: 14px;
-            resize: none;
-            display: block;
-            margin: 0 auto;
-            box-sizing: border-box;
-        }
-        .popup-buttons {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 10px;
-            padding: 0 20px 0 20px;
-        }
-
-        .popup-client-install {
-            display: none;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: #ffffff;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.3);
-            width: 90%;
-            max-width: 700px;
-            max-height: 500px;
-            overflow-y: auto;
-            z-index: 1000;
-            transition: all 0.3s ease-in-out;
-        }
-
-        .overlay-client-install {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(5px);
-            z-index: 999;
-        }
-
-        .popup-client-install h2 {
-            font-size: 20px;
-            color: #333;
-            margin-bottom: 15px;
-            text-align: center;
-        }
-
-        .step {
-            margin-bottom: 5px;
-            padding: 5px;
-            background: #e7f0f9;
-            border-radius: 8px;
-            transition: 0.3s ease-in-out;
-        }
-
-        .step h5 {
-            font-size: 16px;
-            margin-bottom: 5px;
-            color: #444;
-        }
-
-        .step p {
-            font-size: 14px;
-            color: #666;
-            margin-bottom: 5px;
-        }
-
-        .step code {
-            background: #282c34;
-            color: #61dafb;
-            padding: 3px 8px;
-            border-radius: 5px;
-            font-size: 13px;
-            display: inline-block;
-        }
-
-        .close-btn {
-            background: #ff4757;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 16px;
-            display: block;
-            width: 100%;
-            text-align: center;
-            transition: background 0.3s ease;
-        }
-
-        .close-btn:hover {
-            background: #e84118;
-        }
-
     </style>
 </head>
 <body>
-    <div style="margin-bottom: 20px;">
-        <button onclick="showTab('dashboard')">Dashboard</button>
-        <button onclick="showTab('advanced-settings')">Advanced Settings</button>
-        <a href="/logout"><button style="background-color: red;">Logout</button></a>
+
+    <div class="login-container">
+        <img class="dyproxy_image" src="/static/dyproxy_full.png" alt="Dyproxy Logo">
+        {# <h2>Login</h2> #}
+        {% if error %}
+        <p class="error">{{ error }}</p>
+        {% endif %}
+        <form method="post">
+            <input type="text" name="username" placeholder="Username" required>
+            <input type="password" name="password" placeholder="Password" required>
+            <button type="submit">Login</button>
+        </form>
     </div>
 
-    <div id="dashboard" class="tab-content">
-        <div class="container">
-            <h2>DDNS Entries</h2>
-
-            <div class="container-expandables">
-                {% for entry in entries %}
-                <div class="expandable" id="panel{{ loop.index }}">
-                    <div class="toggle-row" onclick="toggleExpand('panel{{ loop.index }}')" style="background-color: {% if last_updated[entry['domain_name']]|int > 60 %}#FF7F7F{% else %}#80EF80{% endif %};">
-                        <label>{{ entry["domain_name"] }}</label>
-                        <label>{{ entry["protocol"] }}</label>
-                        <label>{{ entry["ipv6_address"] }}</label>
-                        <label>{{ last_updated[entry["domain_name"]] }} mins ago</label>
-                    </div>
-                    <div class="hidden-content">
-
-                        <div class="domain-info-block">
-                            <label>SSL Updated on: {{ entry["ssl_updated_on"] }}</label>
-                            <label>IPv6 Updated on: {{ entry["ipv6_updated_on"] }}</label>
-                            <label>Previous IPv6: {{ entry["previous_ipv6"] }}</label>
-                            <label>NGINX Config file path: {{ entry['config_file_path'] }}</label>
-                        </div>
-                        
-                        <div class="input-group">
-                            <label for="input{{ loop.index }}domain_name">Domain Name:</label>
-                            <input type="text" id="input{{ loop.index }}domain_name" value="{{ entry['domain_name'] }}">
-                        </div>
-                        <div class="input-group">
-                            <label for="input{{ loop.index }}ipv6_address">IPv6 target:</label>
-                            <select id="input{{ loop.index }}protocol" sele style="width: 10%;">
-                                <option value="http" {% if entry["protocol"] == "http" %}selected{% endif %}>HTTP</option>
-                                <option value="https" {% if entry["protocol"] == "https" %}selected{% endif %}>HTTPS</option>
-                            </select>
-                            <input type="text" id="input{{ loop.index }}ipv6_address" value="{{ entry['ipv6_address'] }}" style="width: 50%;">
-                        </div>
-                        <div class="input-group">
-                            <label for="input{{ loop.index }}access_code">Access Code:</label>
-                            <input type="text" id="input{{ loop.index }}access_code" value='{{ entry["access_code"] }}'>
-                        </div>
-
-                        <div class="switch-container">
-                            <label>Use custom nginx configuration</label>
-                            <label class="switch">
-                                <input type="checkbox" id="input{{ loop.index }}nginxToggleSwitch" onchange="toggleNginxConfig()">
-                                <span class="slider"></span>
-                            </label>
-                            <button onclick="openPopup({{ loop.index }}, '{{ entry['domain_name'] }}')">Edit Custom Nginx Config</button>
-                        </div>
-                        
-                        <div id="{{ loop.index }}popupOverlay" class="popup-overlay" onclick="closePopup({{ loop.index }})"></div>
-                        <div id="{{ loop.index }}nginxPopup" class="popup">
-                            <textarea id="input{{ loop.index }}nginxConfigTextarea" placeholder="Enter custom Nginx config..."></textarea>
-                            <div class="popup-buttons">
-                                <button class="config-buttons" onclick="saveNginxConfig({{ loop.index }}, '{{ entry['domain_name'] }}')">Save</button>
-                                <button class="config-buttons" onclick="closePopup({{ loop.index }})">Close</button>
-                            </div>
-                        </div>
-
-                        <!-- Overlay -->
-                        <div class="overlay-client-install" id="overlay-client-install{{ loop.index }}" onclick="closeClientToolPopup({{ loop.index }})"></div>
-
-                        <!-- Popup -->
-                        <div class="popup-client-install" id="popup-client-install{{ loop.index }}">
-                            <h2>Installation Steps</h2>
-                            <div class="step">
-                                <p>Step 1: Download bash script</p>
-                                <p>
-                                    <code>
-                                        curl -X POST "{{ client_tool_url }}"
-                                        -H "Content-Type: application/json"
-                                        -d '{"domain_name": "{{ entry['domain_name'] }}", "access_code": "{{ entry['access_code'] }}"}'
-                                        -o /home/$USER/{{ entry['domain_name'] }}.sh
-                                    </code>
-                                </p>
-                                <p>This will download the client bash script and saves it into a file at current user's home folder.</p>
-                            </div>
-                            <div class="step">
-                                <p>Step 2: Update the NGINX config file path</p>
-                                <p><code>nano /home/$USER/{{ entry['domain_name'] }}.sh </code></p>
-                                <p>You need to update the config file path variable in the downloaded bash file. Then press <code>Ctrl+x</code> then <code>y</code> and 'Enter' to save changes.</p>
-                            </div>
-                            <div class="step">
-                                <p>Step 3: Set permissions</p>
-                                <p><code>chmod +x /home/$USER/{{ entry['domain_name'] }}.sh</code></p>
-                                <p>Give bash file permission to be executed as a script.</p>
-                            </div>
-                            <div class="step">
-                                <p>Step 4: Modify the visudo file</p>
-                                <p><code>sudo visudo</code></p>
-                                <p>Add the following line at the end of the file</p>
-                                <p><code>$USER ALL=(ALL) NOPASSWD: /home/$USER/{{ entry['domain_name'] }}.sh</code></p>
-                                <p>Replace <code>$USER</code> with your username(only required for this command).</p>
-                                <p>The bash file needs sudo to run properly. So, allow it sudo previliges without having to use password everytime.</p>
-                            </div>
-                            <div class="step">
-                                <p>Step 5: Add to cronjobs</p>
-                                <p><code>crontab -e</code></p>
-                                <p>This opens up a file. Add the followign at the end of the file</p>
-                                <p><code>*/2 * * * * /bin/sudo /home/$USER/{{ entry['domain_name'] }}.sh >> /home/$USER/{{ entry['domain_name'] }}.log 2>&1</code></p>
-                                <p>This adds a reccuring cron job for regular IPv6 updates. Also, all the logs are stored in the same folder in {{ entry['domain_name'] }}.log</p>
-                            </div>
-                            <button class="close-btn" onclick="closeClientToolPopup({{ loop.index }})">Close</button>
-                        </div>
-
-                        <div class="button-group">
-                            <button class="edit" onclick="showClientToolPopup({{ loop.index }})">Install client</button>
-                            <button class="edit" onclick="updateEntity({{ loop.index }})">Edit</button>
-                            <button class="delete" onclick="deleteEntity('{{ entry['domain_name'] }}')">Delete</button>
-                        </div>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-
-            <div class="expandable" id="add-new-entry-panel">
-                <div class="toggle-row" onclick="toggleExpand('add-new-entry-panel')">
-                    <label>+ Add new entry</label>
-                </div>
-                <div class="hidden-content">
-                    {% for key in entry_keys %}
-                    <div class="input-group">
-                        <label for="new-{{ key }}">{{ key }}</label>
-                        <input type="text" id="new-{{ key }}">
-                    </div>
-                    {% endfor %}
-                    <div class="button-group">
-                        <button onclick="addEntity()">Add</button>
-                        <button class="delete" onclick="clearFields()">Clear</button>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-    </div>
-
-    <div id="advanced-settings" class="tab-content" style="display: none;">
-        <h3>Advanced Settings</h3>
-        
-        <div class="settings-card">
-            <h4>Nginx Template Settings</h4>
-            <label for="nginx-template">Default Nginx Template:</label>
-            <textarea id="nginx-template" rows="10">{{ nginx_template }}</textarea>
-            <div class="button-group">
-                <button class="primary" onclick="updateNginxTemplate()">Submit</button>
-                <button class="secondary" onclick="resetNginxTemplate()">Reset to Default</button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        async function openPopup(index, domain_name) {
-            document.getElementById(`${index}popupOverlay`).style.display = "block";
-            document.getElementById(`${index}nginxPopup`).style.display = "flex";
-
-            let formData = new FormData()
-            formData.append("domain_name", domain_name)
-
-            let response = await fetch("/get_custom_nginx_template", { method: "POST", body: formData });
-            let result = await response.json();
-
-            document.getElementById(`input${index}nginxConfigTextarea`).value = result.nginx_template
-        }
-        
-        function closePopup(index) {
-            document.getElementById(`${index}popupOverlay`).style.display = "none";
-            document.getElementById(`${index}nginxPopup`).style.display = "none";
-        }
-        
-        async function saveNginxConfig(index, domain_name) {
-            let configText = document.getElementById(`input${index}nginxConfigTextarea`).value;
-            
-            let formData = new FormData()
-            formData.append("domain_name", domain_name)
-            formData.append("nginx_template", configText)
-
-            let response = await fetch("/update_custom_nginx_template", { method: "POST", body: formData });
-            let result = await response.json();
-            alert(result.message)
-
-            closePopup(index);
-        }
-        
-        function toggleNginxConfig(index) {
-            let isChecked = document.getElementById(`input${index}nginxToggleSwitch`).checked;
-            console.log("Custom Nginx Config Enabled:", isChecked);
-        }
-
-        function toggleExpand(panelId) {
-            const expandable = document.getElementById(panelId);
-            const content = expandable.querySelector(".hidden-content");
-
-            if (expandable.classList.contains("expanded")) {
-                content.style.maxHeight = content.scrollHeight + "px";
-                requestAnimationFrame(() => {
-                    content.style.maxHeight = "0";
-                    content.style.opacity = "0";
-                });
-
-                setTimeout(() => {
-                    expandable.classList.remove("expanded");
-                }, 400);
-            } else {
-                expandable.classList.add("expanded");
-                content.style.maxHeight = content.scrollHeight + "px";
-                content.style.opacity = "1";
-            }
-        }
-
-        function showClientToolPopup(index) {
-            document.getElementById(`popup-client-install${index}`).style.display = "block";
-            document.getElementById(`overlay-client-install${index}`).style.display = "block";
-        }
-
-        function closeClientToolPopup(index) {
-            document.getElementById(`popup-client-install${index}`).style.display = "none";
-            document.getElementById(`overlay-client-install${index}`).style.display = "none";
-        }
-
-        async function updateEntity(index) {
-            let formData = new FormData();
-            formData.append("domain_name", document.getElementById(`input${index}domain_name`).value);
-            formData.append("protocol", document.getElementById(`input${index}protocol`).value);
-            formData.append("ipv6_address", document.getElementById(`input${index}ipv6_address`).value);
-            formData.append("access_code", document.getElementById(`input${index}access_code`).value);
-            formData.append("nginx_config", document.getElementById(`input${index}nginxToggleSwitch`).checked ? "custom" : "default");
-            
-            let response = await fetch("/update_entity", { method: "POST", body: formData });
-            let result = await response.json();
-            alert(result.message);
-        }
-
-        async function addEntity() {
-            let formData = new FormData();
-
-            {% for key in entry_keys %}
-                formData.append("{{ key }}", document.getElementById("new-{{ key }}").value)
-            {% endfor %}
-
-            let response = await fetch("/add_entity", { method: "POST", body: formData });
-            let result = await response.json();
-            alert(result.message);
-            location.reload();
-        }
-
-        function clearFields(id) {
-            {% for key in entry_keys %}
-                document.getElementById("new-{{ key }}").value = "";
-            {% endfor %}
-        }
-
-        async function deleteEntity(domain_name) {
-            if (!confirm("Are you sure you want to delete this entry?")) return;
-
-            let data = new FormData();
-            data.append("domain_name", domain_name);
-
-            try {
-                let response = await fetch("/delete_entity", {
-                    method: "POST",
-                    body: data  // No need to set headers
-                });
-
-                if (!response.ok) throw new Error("Failed to delete entity");
-
-                let result = await response.json();
-                alert(result.message || "Error deleting entity");
-                location.reload();
-            } catch (error) {
-                alert("Error: " + error.message);
-            }
-        }
-
-        function showTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(tab => {
-                tab.style.display = 'none'; // Hide all tabs
-            });
-            document.getElementById(tabId).style.display = 'block'; // Show selected tab
-        }
-
-        function updateNginxTemplate() {
-            const template = document.getElementById("nginx-template").value;
-            fetch("/update_nginx_template", {
-                method: "POST",
-                headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                body: new URLSearchParams({ template })
-            }).then(response => response.json())
-              .then(data => alert(data.message));
-        }
-
-        function resetNginxTemplate() {
-            fetch("/reset_nginx_template", {
-                method: "POST"
-            }).then(response => response.json())
-              .then(data => {
-                  document.getElementById("nginx-template").value = data.template;
-                  alert(data.message);
-              });
-        }
-
-        async function fetchAndUpdateNginxTemplate() {
-            try {
-                let response = await fetch('/get_nginx_template');
-
-                if (response.status === 401) {
-                    alert("You are not authorized to access this section. Please log in.");
-                    window.location.href = '/';  // Redirect to login page
-                    return;
-                }
-
-                let data = await response.json();
-                document.getElementById('nginx-template').value = data.template; // Update text box
-            } catch (error) {
-                console.error("Error fetching template:", error);
-                alert("Failed to load Nginx template. Please try again.");
-            }
-        }
-
-
-    </script>
 </body>
 </html>
